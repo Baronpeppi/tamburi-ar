@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v5</title>
+<title>Tamburi Standort AR v6</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -34,7 +34,7 @@ input[type=range]{width:100%}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v5</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v6</span></h1>
   <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 
@@ -91,7 +91,7 @@ input[type=range]{width:100%}
   <div class="row" style="margin-top:10px">
     <button class="action capture" id="captureBtn">● Foto speichern</button>
   </div>
-  <div class="small">v5: Das gespeicherte Foto übernimmt Größe und Position aus der Vorschau. Für maßstabsgetreue, bodenverankerte Platzierung nutze weiterhin „In Umgebung anzeigen“.</div>
+  <div class="small">v6: Das gespeicherte Foto übernimmt Größe, Position und Seitenverhältnis aus der Vorschau. Für maßstabsgetreue, bodenverankerte Platzierung nutze weiterhin „In Umgebung anzeigen“.</div>
 </div>
 
 <canvas id="captureCanvas" style="display:none"></canvas>
@@ -269,12 +269,22 @@ captureBtn.onclick=async()=>{
    // CSS translate(%): Prozent bezieht sich auf die Größe des transformierten Elements
    // (hier Stage/Viewer-Größe). CSS transform wird von rechts nach links angewandt:
    // translate(...) scale(...). Für die visuelle Vorschau genügt diese Zielbox-Berechnung.
-   const drawW=stageW*s;
-   const drawH=stageH*s;
+   // v6: Snapshot NICHT auf Stage-Seitenverhältnis verzerren.
+   // Das Modell wird proportional anhand seines eigenen Snapshot-Seitenverhältnisses skaliert.
+   const bmpAR=bmp.width/bmp.height;
+   let drawH=stageH*s;
+   let drawW=drawH*bmpAR;
+
+   // Sicherheitsbegrenzung: falls der Snapshot breiter als die Stage wäre,
+   // proportional über die Breite skalieren.
+   if(drawW>stageW*s){
+     drawW=stageW*s;
+     drawH=drawW/bmpAR;
+   }
+
    const dx=(stageW-drawW)/2 + stageW*(xPct/100);
    const dy=(stageH-drawH)/2 + stageH*(yPct/100);
 
-   // model-viewer Snapshot enthält den 3D-Render; auf die berechnete Zielbox zeichnen.
    ctx.drawImage(bmp,dx,dy,drawW,drawH);
 
    const name=safeName(document.getElementById('photoName').value);
