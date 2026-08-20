@@ -4,9 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v4</title>
+<title>Tamburi Standort AR v5</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,sans-serif;background:#f3f4f5;color:#1f2328}
@@ -31,13 +30,11 @@ model-viewer{position:absolute;inset:0;width:100%;height:100%;background:transpa
 input[type=range]{width:100%}
 #photoName{width:100%;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:14px}
 .small{font-size:11px;color:#777}
-#stage.captureClean .badge{display:none!important}
-#stage.captureClean #arButton{display:none!important}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v4</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v5</span></h1>
   <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 
@@ -94,7 +91,7 @@ input[type=range]{width:100%}
   <div class="row" style="margin-top:10px">
     <button class="action capture" id="captureBtn">● Foto speichern</button>
   </div>
-  <div class="small">Im Fotomodus kannst du den Kasten per Größe und Position auf das Live-Kamerabild legen. Für maßstabsgetreue, bodenverankerte Platzierung nutze weiterhin „In Umgebung anzeigen“.</div>
+  <div class="small">v5: Das gespeicherte Foto übernimmt Größe und Position aus der Vorschau. Für maßstabsgetreue, bodenverankerte Platzierung nutze weiterhin „In Umgebung anzeigen“.</div>
 </div>
 
 <canvas id="captureCanvas" style="display:none"></canvas>
@@ -207,30 +204,82 @@ function safeName(s){
 
 captureBtn.onclick=async()=>{
  if(!photoMode) return;
- const stage=document.getElementById('stage');
  try{
    status.textContent='Foto wird erstellt …';
-   stage.classList.add('captureClean');
 
-   // Wait two frames so hidden UI is definitely removed before capture.
+   const stage=document.getElementById('stage');
+   const stageW=stage.clientWidth;
+   const stageH=stage.clientHeight;
+   const dpr=Math.min(2,window.devicePixelRatio||1);
+
+   // Ausgabe entspricht bewusst der sichtbaren Foto-Vorschau.
+   canvas.width=Math.round(stageW*dpr);
+   canvas.height=Math.round(stageH*dpr);
+   const ctx=canvas.getContext('2d');
+   ctx.setTransform(dpr,0,0,dpr,0,0);
+
+   // 1) Kamerabild exakt wie CSS object-fit: cover in die Stage zeichnen.
+   const vw=camera.videoWidth||stageW;
+   const vh=camera.videoHeight||stageH;
+   const videoAR=vw/vh;
+   const stageAR=stageW/stageH;
+
+   let sx=0, sy=0, sw=vw, sh=vh;
+   if(videoAR>stageAR){
+     // Video ist breiter -> links/rechts beschneiden
+     sw=vh*stageAR;
+     sx=(vw-sw)/2;
+   }else{
+     // Video ist höher -> oben/unten beschneiden
+     sh=vw/stageAR;
+     sy=(vh-sh)/2;
+   }
+   ctx.drawImage(camera,sx,sy,sw,sh,0,0,stageW,stageH);
+
+   // 2) 3D-Modell transparent rendern.
+   if(typeof viewer.toBlob!=='function'){
+     throw new Error('model-viewer toBlob nicht verfügbar');
+   }
+
+   // Badge/AR-Button kurzfristig ausblenden.
+   const oldBadgeDisplay=badge.style.display;
+   const arBtn=document.getElementById('arButton');
+   const oldArDisplay=arBtn.style.display;
+   badge.style.display='none';
+   arBtn.style.display='none';
+
+   // CSS transform temporär entfernen, weil wir ihn unten pixelgenau selbst anwenden.
+   const oldTransform=viewer.style.transform;
+   viewer.style.transform='none';
+
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const modelBlob=await viewer.toBlob({mimeType:'image/png', idealAspect:true});
 
-   // Capture EXACTLY the visible stage, including the same CSS scale/position
-   // the user sees before pressing the button.
-   const shot=await html2canvas(stage,{
-     backgroundColor:null,
-     useCORS:true,
-     logging:false,
-     scale:Math.min(2,window.devicePixelRatio||1),
-     width:stage.clientWidth,
-     height:stage.clientHeight,
-     scrollX:0,
-     scrollY:0
-   });
+   viewer.style.transform=oldTransform;
+   badge.style.display=oldBadgeDisplay;
+   arBtn.style.display=oldArDisplay;
+
+   const bmp=await createImageBitmap(modelBlob);
+
+   // 3) Exakt dieselben Reglerwerte wie in der Vorschau anwenden.
+   const s=Number(scale.value)/100;
+   const xPct=Number(posX.value);
+   const yPct=Number(posY.value);
+
+   // CSS translate(%): Prozent bezieht sich auf die Größe des transformierten Elements
+   // (hier Stage/Viewer-Größe). CSS transform wird von rechts nach links angewandt:
+   // translate(...) scale(...). Für die visuelle Vorschau genügt diese Zielbox-Berechnung.
+   const drawW=stageW*s;
+   const drawH=stageH*s;
+   const dx=(stageW-drawW)/2 + stageW*(xPct/100);
+   const dy=(stageH-drawH)/2 + stageH*(yPct/100);
+
+   // model-viewer Snapshot enthält den 3D-Render; auf die berechnete Zielbox zeichnen.
+   ctx.drawImage(bmp,dx,dy,drawW,drawH);
 
    const name=safeName(document.getElementById('photoName').value);
-   shot.toBlob(blob=>{
-     if(!blob) throw new Error('Bild konnte nicht erzeugt werden');
+   canvas.toBlob(blob=>{
+     if(!blob) throw new Error('Kein Bild erzeugt');
      const a=document.createElement('a');
      a.href=URL.createObjectURL(blob);
      a.download=name+'.jpg';
@@ -240,11 +289,10 @@ captureBtn.onclick=async()=>{
      setTimeout(()=>URL.revokeObjectURL(a.href),2000);
      status.textContent='Foto gespeichert: '+name+'.jpg';
    },'image/jpeg',.95);
+
  }catch(e){
    console.error(e);
-   status.textContent='Speichern nicht möglich. Bitte als Fallback einen Screenshot verwenden.';
- }finally{
-   stage.classList.remove('captureClean');
+   status.textContent='Foto konnte nicht gespeichert werden. Bitte Screenshot als Fallback verwenden.';
  }
 };
 </script>
