@@ -4,29 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR</title>
+<title>Tamburi Standort AR + Foto</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
-*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#f3f4f5;color:#1f2328}
-header{background:#fff;padding:14px 16px;border-bottom:1px solid #ddd}
-h1{font-size:20px;margin:0}.sub{font-size:12px;color:#666;margin-top:4px}
-.panel{background:#fff;padding:12px 14px;border-bottom:1px solid #ddd}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f4f5;color:#1f2328}
+header{background:#fff;padding:12px 14px;border-bottom:1px solid #ddd}
+h1{font-size:19px;margin:0}.sub{font-size:12px;color:#666;margin-top:4px}
+.panel{background:#fff;padding:10px 12px;border-bottom:1px solid #ddd}
 .label{font-size:12px;font-weight:700;margin:0 0 6px}
-.row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
-.choice{border:1px solid #bbb;background:#fff;border-radius:9px;padding:9px 12px;font-size:14px}
+.row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.choice,.action{border:1px solid #bbb;background:#fff;border-radius:9px;padding:9px 12px;font-size:14px}
 .choice.active{background:#202124;color:#fff;border-color:#202124}
-.choice:disabled{opacity:.35}
+.action.primary{background:#202124;color:#fff;border-color:#202124}
+.action.capture{background:#d92d20;color:#fff;border-color:#d92d20;font-weight:700}
 #status{font-size:12px;color:#555;min-height:16px}
-model-viewer{width:100%;height:calc(100vh - 300px);min-height:420px;background:linear-gradient(#fafafa,#e6e8ea)}
+#stage{position:relative;width:100%;height:calc(100vh - 345px);min-height:430px;background:#ddd;overflow:hidden}
+#camera{display:none;width:100%;height:100%;object-fit:cover;background:#111}
+model-viewer{position:absolute;inset:0;width:100%;height:100%;background:transparent;--poster-color:transparent}
+#viewer.normalMode{background:linear-gradient(#fafafa,#e6e8ea)}
 #arButton{background:#fff;border:0;border-radius:999px;padding:14px 20px;font-weight:700;box-shadow:0 3px 15px #0003;position:absolute;bottom:22px;left:50%;transform:translateX(-50%)}
-.badge{position:absolute;top:12px;left:12px;background:#ffffffdf;border-radius:9px;padding:7px 10px;font-size:12px;box-shadow:0 2px 8px #0002}
-.note{font-size:11px;color:#777;margin-top:-5px}
+.badge{position:absolute;top:10px;left:10px;background:#ffffffdf;border-radius:9px;padding:7px 10px;font-size:12px;box-shadow:0 2px 8px #0002;z-index:3}
+#photoControls{display:none;background:#fff;padding:10px 12px;border-top:1px solid #ddd}
+.sliderrow{display:grid;grid-template-columns:85px 1fr 45px;gap:8px;align-items:center;margin:7px 0;font-size:12px}
+input[type=range]{width:100%}
+#photoName{width:100%;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:14px}
+.small{font-size:11px;color:#777}
 </style>
 </head>
 <body>
 <header>
   <h1>Tamburi Standort AR</h1>
-  <div class="sub">Paketkasten auswählen und maßstabsgetreu in der Umgebung anzeigen</div>
+  <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 
 <div class="panel">
@@ -43,50 +52,75 @@ model-viewer{width:100%;height:calc(100vh - 300px);min-height:420px;background:l
     <button class="choice" data-base="sockel">Betonsockel</button>
   </div>
 
-  <div class="label">3. Betonplatten vor dem Kasten</div>
+  <div class="label">3. Betonplatten</div>
   <div class="row" id="plateRow">
     <button class="choice active" data-plates="none">Keine</button>
     <button class="choice" data-plates="50">50 cm tief</button>
     <button class="choice" data-plates="100">100 cm tief</button>
   </div>
-  <div class="note">50 cm = 2 Platten je Kasten · 100 cm = 4 Platten je Kasten</div>
+
+  <div class="row">
+    <button class="action primary" id="photoModeBtn">📷 Fotomodus starten</button>
+    <button class="action" id="stopPhotoBtn" style="display:none">Fotomodus beenden</button>
+  </div>
   <div id="status"></div>
 </div>
 
-<model-viewer id="viewer"
- src="normal_1.glb"
- alt="Tamburi Paketkasten"
- camera-controls touch-action="pan-y"
- ar ar-modes="webxr scene-viewer"
- ar-scale="fixed"
- shadow-intensity="1" shadow-softness=".8"
- exposure="1" environment-image="neutral">
- <div class="badge" id="badge">1 Kasten · Normal · keine Platten</div>
- <button slot="ar-button" id="arButton">📷 In Umgebung anzeigen</button>
-</model-viewer>
+<div id="stage">
+  <video id="camera" autoplay playsinline muted></video>
+  <model-viewer id="viewer" class="normalMode"
+    src="normal_1.glb"
+    alt="Tamburi Paketkasten"
+    camera-controls touch-action="pan-y"
+    ar ar-modes="webxr scene-viewer"
+    ar-scale="fixed"
+    shadow-intensity="1" shadow-softness=".8"
+    exposure="1" environment-image="neutral">
+      <div class="badge" id="badge">1 Kasten · Normal · keine Platten</div>
+      <button slot="ar-button" id="arButton">📷 In Umgebung anzeigen</button>
+  </model-viewer>
+</div>
+
+<div id="photoControls">
+  <div class="label">Fotomodus</div>
+  <div class="sliderrow"><span>Größe</span><input id="scale" type="range" min="30" max="180" value="100"><span id="scaleVal">100%</span></div>
+  <div class="sliderrow"><span>Links/Rechts</span><input id="posX" type="range" min="-40" max="40" value="0"><span id="xVal">0</span></div>
+  <div class="sliderrow"><span>Hoch/Runter</span><input id="posY" type="range" min="-40" max="40" value="8"><span id="yVal">8</span></div>
+  <div style="margin:10px 0 6px" class="label">Optionaler Fotoname</div>
+  <input id="photoName" placeholder="z. B. Hanuschgasse 3">
+  <div class="row" style="margin-top:10px">
+    <button class="action capture" id="captureBtn">● Foto speichern</button>
+  </div>
+  <div class="small">Im Fotomodus kannst du den Kasten per Größe und Position auf das Live-Kamerabild legen. Für maßstabsgetreue, bodenverankerte Platzierung nutze weiterhin „In Umgebung anzeigen“.</div>
+</div>
+
+<canvas id="captureCanvas" style="display:none"></canvas>
 
 <script>
 const viewer=document.getElementById('viewer');
+const camera=document.getElementById('camera');
 const badge=document.getElementById('badge');
 const status=document.getElementById('status');
+const photoControls=document.getElementById('photoControls');
+const photoModeBtn=document.getElementById('photoModeBtn');
+const stopPhotoBtn=document.getElementById('stopPhotoBtn');
+const captureBtn=document.getElementById('captureBtn');
+const canvas=document.getElementById('captureCanvas');
+let stream=null;
 let state={count:1,base:'normal',plates:'none'};
+let photoMode=false;
 
 function setActive(group, attr, val){
  document.querySelectorAll(group+' .choice').forEach(b=>b.classList.toggle('active',b.dataset[attr]===String(val)));
 }
 function update(){
- // Current model library has separate "sockel" and "platten" GLBs.
- // Until combined sockel+platten models exist, selecting plates switches to normal mounting.
  if(state.base==='sockel' && state.plates!=='none'){
-   state.plates='none';
-   setActive('#plateRow','plates','none');
-   status.textContent='Betonsockel und Betonplatten werden derzeit getrennt dargestellt.';
- } else status.textContent='';
-
+   state.plates='none'; setActive('#plateRow','plates','none');
+ }
  let src,desc;
  if(state.base==='sockel'){
    src=`sockel_${state.count}.glb`;
-   desc=`${state.count} ${state.count===1?'Kasten':'Kästen'} · Betonsockel · keine Platten`;
+   desc=`${state.count} ${state.count===1?'Kasten':'Kästen'} · Betonsockel`;
  } else if(state.plates==='50'){
    src=`platten50_${state.count}.glb`;
    desc=`${state.count} ${state.count===1?'Kasten':'Kästen'} · 50 cm Betonplatten`;
@@ -95,7 +129,7 @@ function update(){
    desc=`${state.count} ${state.count===1?'Kasten':'Kästen'} · 100 cm Betonplatten`;
  } else {
    src=`normal_${state.count}.glb`;
-   desc=`${state.count} ${state.count===1?'Kasten':'Kästen'} · Normal · keine Platten`;
+   desc=`${state.count} ${state.count===1?'Kasten':'Kästen'} · Normal`;
  }
  viewer.src=src; badge.textContent=desc;
 }
@@ -113,6 +147,95 @@ document.querySelectorAll('[data-plates]').forEach(b=>b.onclick=()=>{
  if(state.plates!=='none'){state.base='normal';setActive('#baseRow','base','normal');}
  update();
 });
+
+async function startPhotoMode(){
+ try{
+   stream=await navigator.mediaDevices.getUserMedia({
+     video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},
+     audio:false
+   });
+   camera.srcObject=stream;
+   camera.style.display='block';
+   viewer.classList.remove('normalMode');
+   viewer.removeAttribute('environment-image');
+   photoControls.style.display='block';
+   photoModeBtn.style.display='none';
+   stopPhotoBtn.style.display='inline-block';
+   document.getElementById('arButton').style.display='none';
+   photoMode=true;
+   status.textContent='Fotomodus aktiv – Kamera läuft.';
+   applyTransform();
+ }catch(e){
+   status.textContent='Kamera konnte nicht geöffnet werden. Bitte Kamera-Berechtigung im Browser erlauben.';
+ }
+}
+
+function stopPhotoMode(){
+ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+ camera.style.display='none';
+ viewer.classList.add('normalMode');
+ photoControls.style.display='none';
+ photoModeBtn.style.display='inline-block';
+ stopPhotoBtn.style.display='none';
+ document.getElementById('arButton').style.display='block';
+ photoMode=false;
+ status.textContent='';
+ viewer.style.transform='';
+}
+
+photoModeBtn.onclick=startPhotoMode;
+stopPhotoBtn.onclick=stopPhotoMode;
+
+const scale=document.getElementById('scale'), posX=document.getElementById('posX'), posY=document.getElementById('posY');
+function applyTransform(){
+ const s=Number(scale.value)/100, x=Number(posX.value), y=Number(posY.value);
+ viewer.style.transform=`translate(${x}%, ${y}%) scale(${s})`;
+ document.getElementById('scaleVal').textContent=scale.value+'%';
+ document.getElementById('xVal').textContent=x;
+ document.getElementById('yVal').textContent=y;
+}
+[scale,posX,posY].forEach(el=>el.oninput=applyTransform);
+
+function safeName(s){
+ return (s||'Tamburi_Standort').trim()
+   .replace(/[äÄ]/g,'ae').replace(/[öÖ]/g,'oe').replace(/[üÜ]/g,'ue').replace(/ß/g,'ss')
+   .replace(/[^a-zA-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'') || 'Tamburi_Standort';
+}
+
+captureBtn.onclick=async()=>{
+ if(!photoMode) return;
+ try{
+   const vw=camera.videoWidth||1920, vh=camera.videoHeight||1080;
+   canvas.width=vw; canvas.height=vh;
+   const ctx=canvas.getContext('2d');
+   ctx.drawImage(camera,0,0,vw,vh);
+
+   // model-viewer supports toBlob in modern versions.
+   if(typeof viewer.toBlob!=='function'){
+     status.textContent='Dein Browser unterstützt die direkte 3D-Aufnahme hier nicht. Nutze vorerst einen Screenshot.';
+     return;
+   }
+   const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
+   const bmp=await createImageBitmap(modelBlob);
+
+   // Composite model-viewer snapshot over camera frame.
+   // Use contain-fit to stage ratio.
+   ctx.drawImage(bmp,0,0,vw,vh);
+
+   const name=safeName(document.getElementById('photoName').value);
+   canvas.toBlob(blob=>{
+     const a=document.createElement('a');
+     a.href=URL.createObjectURL(blob);
+     a.download=name+'.jpg';
+     a.click();
+     setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+     status.textContent='Foto gespeichert: '+name+'.jpg';
+   },'image/jpeg',.94);
+ }catch(e){
+   console.error(e);
+   status.textContent='Direktes Speichern war nicht möglich. Als Fallback bitte einen normalen Screenshot verwenden.';
+ }
+};
 </script>
 </body>
 </html>
