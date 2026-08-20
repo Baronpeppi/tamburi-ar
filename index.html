@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR + Foto</title>
+<title>Tamburi Standort AR v4</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,sans-serif;background:#f3f4f5;color:#1f2328}
@@ -30,11 +31,13 @@ model-viewer{position:absolute;inset:0;width:100%;height:100%;background:transpa
 input[type=range]{width:100%}
 #photoName{width:100%;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:14px}
 .small{font-size:11px;color:#777}
+#stage.captureClean .badge{display:none!important}
+#stage.captureClean #arButton{display:none!important}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR</h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v4</span></h1>
   <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 
@@ -204,36 +207,44 @@ function safeName(s){
 
 captureBtn.onclick=async()=>{
  if(!photoMode) return;
+ const stage=document.getElementById('stage');
  try{
-   const vw=camera.videoWidth||1920, vh=camera.videoHeight||1080;
-   canvas.width=vw; canvas.height=vh;
-   const ctx=canvas.getContext('2d');
-   ctx.drawImage(camera,0,0,vw,vh);
+   status.textContent='Foto wird erstellt …';
+   stage.classList.add('captureClean');
 
-   // model-viewer supports toBlob in modern versions.
-   if(typeof viewer.toBlob!=='function'){
-     status.textContent='Dein Browser unterstützt die direkte 3D-Aufnahme hier nicht. Nutze vorerst einen Screenshot.';
-     return;
-   }
-   const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
-   const bmp=await createImageBitmap(modelBlob);
+   // Wait two frames so hidden UI is definitely removed before capture.
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
-   // Composite model-viewer snapshot over camera frame.
-   // Use contain-fit to stage ratio.
-   ctx.drawImage(bmp,0,0,vw,vh);
+   // Capture EXACTLY the visible stage, including the same CSS scale/position
+   // the user sees before pressing the button.
+   const shot=await html2canvas(stage,{
+     backgroundColor:null,
+     useCORS:true,
+     logging:false,
+     scale:Math.min(2,window.devicePixelRatio||1),
+     width:stage.clientWidth,
+     height:stage.clientHeight,
+     scrollX:0,
+     scrollY:0
+   });
 
    const name=safeName(document.getElementById('photoName').value);
-   canvas.toBlob(blob=>{
+   shot.toBlob(blob=>{
+     if(!blob) throw new Error('Bild konnte nicht erzeugt werden');
      const a=document.createElement('a');
      a.href=URL.createObjectURL(blob);
      a.download=name+'.jpg';
+     document.body.appendChild(a);
      a.click();
-     setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+     a.remove();
+     setTimeout(()=>URL.revokeObjectURL(a.href),2000);
      status.textContent='Foto gespeichert: '+name+'.jpg';
-   },'image/jpeg',.94);
+   },'image/jpeg',.95);
  }catch(e){
    console.error(e);
-   status.textContent='Direktes Speichern war nicht möglich. Als Fallback bitte einen normalen Screenshot verwenden.';
+   status.textContent='Speichern nicht möglich. Bitte als Fallback einen Screenshot verwenden.';
+ }finally{
+   stage.classList.remove('captureClean');
  }
 };
 </script>
