@@ -1,4 +1,15 @@
-Tamburi AR v7
-Neu: Foto/Screenshot vom Smartphone auswählen, 3D-Kasten darauf positionieren und als JPG speichern.
-Die funktionierende Live-Kamera und der v6-Proportionsfix bleiben erhalten.
-Für das Update reicht index.html.
+Tamburi AR v8 – Mobil/Desktop
+================================
+Neu:
+- Umschalter 📱 Mobil / 🖥️ Desktop
+- Desktopmodus für PC/Notebook
+- Foto/Screenshot laden
+- 3D-Modell mit Maus ziehen
+- Mausrad = Größe
+- Alt + Mausrad = Drehung
+- Regler für Größe und Drehung
+- Desktopbild speichern
+- Mobilmodus v7 bleibt erhalten
+
+Für das Update reicht die index.html.
+Die GLB-Dateien bleiben unverändert.
