@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v6</title>
+<title>Tamburi Standort AR v7</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -34,7 +34,7 @@ input[type=range]{width:100%}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v6</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v7</span></h1>
   <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 
@@ -61,12 +61,15 @@ input[type=range]{width:100%}
 
   <div class="row">
     <button class="action primary" id="photoModeBtn">📷 Fotomodus starten</button>
+<label class="action" style="display:inline-block;cursor:pointer">🖼️ Foto/Screenshot auswählen
+<input id="photoUpload" type="file" accept="image/*" style="display:none"></label>
     <button class="action" id="stopPhotoBtn" style="display:none">Fotomodus beenden</button>
   </div>
   <div id="status"></div>
 </div>
 
 <div id="stage">
+  <img id="importedPhoto" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111">
   <video id="camera" autoplay playsinline muted></video>
   <model-viewer id="viewer" class="normalMode"
     src="normal_1.glb"
@@ -91,7 +94,7 @@ input[type=range]{width:100%}
   <div class="row" style="margin-top:10px">
     <button class="action capture" id="captureBtn">● Foto speichern</button>
   </div>
-  <div class="small">v6: Das gespeicherte Foto übernimmt Größe, Position und Seitenverhältnis aus der Vorschau. Für maßstabsgetreue, bodenverankerte Platzierung nutze weiterhin „In Umgebung anzeigen“.</div>
+  <div class="small">v7: Du kannst jetzt auch ein vorhandenes Foto oder einen Screenshot auswählen und den Kasten darauf positionieren. Für maßstabsgetreue, bodenverankerte Platzierung nutze weiterhin „In Umgebung anzeigen“.</div>
 </div>
 
 <canvas id="captureCanvas" style="display:none"></canvas>
@@ -103,6 +106,9 @@ const badge=document.getElementById('badge');
 const status=document.getElementById('status');
 const photoControls=document.getElementById('photoControls');
 const photoModeBtn=document.getElementById('photoModeBtn');
+const photoUpload=document.getElementById('photoUpload');
+const importedPhoto=document.getElementById('importedPhoto');
+let importedPhotoMode=false, importedObjectURL=null;
 const stopPhotoBtn=document.getElementById('stopPhotoBtn');
 const captureBtn=document.getElementById('captureBtn');
 const canvas=document.getElementById('captureCanvas');
@@ -148,8 +154,33 @@ document.querySelectorAll('[data-plates]').forEach(b=>b.onclick=()=>{
  update();
 });
 
+async function startImportedPhoto(file){
+ if(!file) return;
+ try{
+   if(importedObjectURL) URL.revokeObjectURL(importedObjectURL);
+   importedObjectURL=URL.createObjectURL(file);
+   importedPhoto.src=importedObjectURL;
+   await new Promise((ok,bad)=>{importedPhoto.onload=ok; importedPhoto.onerror=bad;});
+   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+   camera.style.display='none';
+   importedPhoto.style.display='block';
+   viewer.classList.remove('normalMode');
+   viewer.removeAttribute('environment-image');
+   photoControls.style.display='block';
+   photoModeBtn.style.display='none';
+   stopPhotoBtn.style.display='inline-block';
+   document.getElementById('arButton').style.display='none';
+   importedPhotoMode=true; photoMode=true;
+   status.textContent='Foto/Screenshot geladen – Kasten positionieren.';
+   applyTransform();
+ }catch(e){status.textContent='Bild konnte nicht geladen werden.';}
+}
+photoUpload.onchange=e=>startImportedPhoto(e.target.files&&e.target.files[0]);
+
 async function startPhotoMode(){
  try{
+   importedPhotoMode=false;
+   importedPhoto.style.display='none';
    stream=await navigator.mediaDevices.getUserMedia({
      video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},
      audio:false
@@ -173,6 +204,8 @@ async function startPhotoMode(){
 function stopPhotoMode(){
  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
  camera.style.display='none';
+ importedPhoto.style.display='none';
+ importedPhotoMode=false;
  viewer.classList.add('normalMode');
  photoControls.style.display='none';
  photoModeBtn.style.display='inline-block';
@@ -218,23 +251,21 @@ captureBtn.onclick=async()=>{
    const ctx=canvas.getContext('2d');
    ctx.setTransform(dpr,0,0,dpr,0,0);
 
-   // 1) Kamerabild exakt wie CSS object-fit: cover in die Stage zeichnen.
-   const vw=camera.videoWidth||stageW;
-   const vh=camera.videoHeight||stageH;
-   const videoAR=vw/vh;
-   const stageAR=stageW/stageH;
-
-   let sx=0, sy=0, sw=vw, sh=vh;
-   if(videoAR>stageAR){
-     // Video ist breiter -> links/rechts beschneiden
-     sw=vh*stageAR;
-     sx=(vw-sw)/2;
+   // 1) Hintergrund exakt wie in der Vorschau zeichnen.
+   if(importedPhotoMode){
+     ctx.fillStyle='#111'; ctx.fillRect(0,0,stageW,stageH);
+     const iw=importedPhoto.naturalWidth, ih=importedPhoto.naturalHeight;
+     const fit=Math.min(stageW/iw,stageH/ih);
+     const dw=iw*fit, dh=ih*fit;
+     ctx.drawImage(importedPhoto,(stageW-dw)/2,(stageH-dh)/2,dw,dh);
    }else{
-     // Video ist höher -> oben/unten beschneiden
-     sh=vw/stageAR;
-     sy=(vh-sh)/2;
+     const vw=camera.videoWidth||stageW, vh=camera.videoHeight||stageH;
+     const videoAR=vw/vh, stageAR=stageW/stageH;
+     let sx=0,sy=0,sw=vw,sh=vh;
+     if(videoAR>stageAR){sw=vh*stageAR;sx=(vw-sw)/2;}
+     else{sh=vw/stageAR;sy=(vh-sh)/2;}
+     ctx.drawImage(camera,sx,sy,sw,sh,0,0,stageW,stageH);
    }
-   ctx.drawImage(camera,sx,sy,sw,sh,0,0,stageW,stageH);
 
    // 2) 3D-Modell transparent rendern.
    if(typeof viewer.toBlob!=='function'){
