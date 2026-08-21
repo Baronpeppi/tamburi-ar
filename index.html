@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v9.5</title>
+<title>Tamburi Standort AR v9.6</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -71,7 +71,7 @@ model-viewer#viewer{background:#b9bdc0!important;}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.5</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.6</span></h1>
   <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -140,6 +140,7 @@ model-viewer#viewer{background:#b9bdc0!important;}
   <div style="display:flex;gap:8px;align-items:stretch">
   <input id="photoName" placeholder="z. B. Hauptstraße 15, 2126 Ladendorf" style="flex:1;min-width:0">
   <button type="button" class="action" id="locationNameBtn" style="white-space:nowrap">📍 Standort</button>
+  <button type="button" class="action" id="katasterBtn" style="white-space:nowrap">📐 Kataster</button>
 </div>
 <div class="small" id="locationStatus" style="margin-top:5px"></div>
   <div class="row" style="margin-top:10px">
@@ -169,6 +170,7 @@ model-viewer#viewer{background:#b9bdc0!important;}
  <div style="display:flex;gap:8px;align-items:stretch">
   <input id="v9ResultName" placeholder="z. B. Hauptstraße 15, 2126 Ladendorf" style="flex:1;min-width:0;padding:10px;border:1px solid #bbb;border-radius:8px">
   <button type="button" class="action" id="locationResultBtn" style="white-space:nowrap">📍 Standort</button>
+  <button type="button" class="action" id="katasterResultBtn" style="white-space:nowrap">📐 Kataster</button>
 </div>
  <div class="row" style="margin-top:10px">
   <button class="action capture" id="v9Save">Foto speichern</button>
@@ -746,6 +748,9 @@ v9Model.addEventListener('load',()=>v94ApplyRAL7035(v9Model));
 const locationNameBtn=document.getElementById('locationNameBtn');
 const locationResultBtn=document.getElementById('locationResultBtn');
 const locationStatus=document.getElementById('locationStatus');
+const katasterBtn=document.getElementById('katasterBtn');
+const katasterResultBtn=document.getElementById('katasterResultBtn');
+let lastGeoPosition=null;
 
 function locationButtonBusy(busy){
  [locationNameBtn,locationResultBtn].filter(Boolean).forEach(btn=>{
@@ -782,6 +787,7 @@ async function fillFilenameFromLocation(target){
  locationButtonBusy(true);
  locationStatus.textContent='Standort wird ermittelt…';
  navigator.geolocation.getCurrentPosition(async pos=>{
+   lastGeoPosition={lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy};
    try{
      const data=await reverseGeocode(pos.coords.latitude,pos.coords.longitude);
      const address=buildAddressName(data.address||{});
@@ -813,6 +819,50 @@ async function fillFilenameFromLocation(target){
    maximumAge:15000
  });
 }
+
+function bevKatasterUrl(lat,lon){
+ // BEV Kataster accepts hash links centered on WGS84 longitude,latitude.
+ return `https://kataster.bev.gv.at/#/center/${Number(lon).toFixed(6)},${Number(lat).toFixed(6)}/zoom/18.8/gis/1`;
+}
+
+function openKatasterAt(lat,lon,win){
+ const url=bevKatasterUrl(lat,lon);
+ if(win) win.location.href=url;
+ else window.open(url,'_blank','noopener');
+}
+
+function openKatasterFromLocation(){
+ // Open a blank tab immediately so mobile browsers do not block the later navigation.
+ const katWin=window.open('about:blank','_blank');
+ if(lastGeoPosition){
+   openKatasterAt(lastGeoPosition.lat,lastGeoPosition.lon,katWin);
+   locationStatus.textContent='Kataster am zuletzt ermittelten Standort geöffnet.';
+   return;
+ }
+ if(!navigator.geolocation){
+   if(katWin) katWin.close();
+   locationStatus.textContent='Standortfunktion wird von diesem Browser nicht unterstützt.';
+   return;
+ }
+ locationStatus.textContent='Standort für Kataster wird ermittelt…';
+ navigator.geolocation.getCurrentPosition(pos=>{
+   lastGeoPosition={lat:pos.coords.latitude,lon:pos.coords.longitude,accuracy:pos.coords.accuracy};
+   openKatasterAt(pos.coords.latitude,pos.coords.longitude,katWin);
+   locationStatus.textContent=`Kataster geöffnet${pos.coords.accuracy ? ' · GPS-Genauigkeit ca. '+Math.round(pos.coords.accuracy)+' m' : ''}.`;
+ },err=>{
+   if(katWin) katWin.close();
+   let msg='Standort für Kataster konnte nicht ermittelt werden.';
+   if(err.code===1) msg='Bitte Standortfreigabe erlauben, um den Kataster zu öffnen.';
+   locationStatus.textContent=msg;
+ },{
+   enableHighAccuracy:true,
+   timeout:12000,
+   maximumAge:15000
+ });
+}
+if(katasterBtn) katasterBtn.onclick=openKatasterFromLocation;
+if(katasterResultBtn) katasterResultBtn.onclick=openKatasterFromLocation;
+
 if(locationNameBtn) locationNameBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('photoName'));
 if(locationResultBtn) locationResultBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('v9ResultName'));
 </script>

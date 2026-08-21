@@ -1,17 +1,14 @@
-Tamburi AR v9.5
+Tamburi AR v9.6
 =================
 Neu:
-- Button "📍 Standort" direkt beim Dateinamen
-- nutzt die Standortfreigabe des Smartphones/PCs
-- GPS-Koordinaten werden per Reverse-Geocoding in eine Adresse umgewandelt
-- Format: Straße Hausnummer, PLZ Ort
-- Adresse wird automatisch in den Dateinamen übernommen
-- funktioniert auch nach der Aufnahme im Ergebnisbereich
-- zeigt die ungefähre GPS-Genauigkeit an
+- Button "📐 Kataster" neben der Standortfunktion
+- öffnet den offiziellen österreichischen BEV-Kataster
+- aktueller GPS-Standort wird automatisch als Kartenmittelpunkt verwendet
+- wenn der Standort bereits über "📍 Standort" ermittelt wurde, werden dieselben Koordinaten wiederverwendet
+- Zoom ca. 18.8 für Grundstücksebene
+- funktioniert auch im Ergebnisbereich nach der Fotoaufnahme
 
-Hinweis:
-Die Webseite benötigt HTTPS (GitHub Pages erfüllt das) und der Browser muss
-Standortzugriff erlauben. Für die Adressauflösung wird OpenStreetMap Nominatim
-verwendet, daher ist eine Internetverbindung nötig.
+BEV-Linkformat:
+https://kataster.bev.gv.at/#/center/LÄNGENGRAD,BREITENGRAD/zoom/18.8/gis/1
 
 Für GitHub nur index.html ersetzen.
