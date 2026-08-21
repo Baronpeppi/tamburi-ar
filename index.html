@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v9.3</title>
+<title>Tamburi Standort AR v9.4</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -59,11 +59,19 @@ input[type=range]{width:100%}
  #v9Shutter{width:58px;height:58px} #v9Bottom{padding:7px} #v9Hint{bottom:72px}
  #v9Top{padding:7px 12px}
 }
+
+/* v9.4 preview contrast */
+.viewerWrap,.viewer,.modelWrap,#viewerWrap{background:#b9bdc0!important;}
+model-viewer#viewer{background:#b9bdc0!important;}
+.viewerWrap:after,#viewerWrap:after{
+ content:"";position:absolute;left:20%;right:20%;bottom:8%;height:5%;
+ background:rgba(0,0,0,.18);filter:blur(13px);border-radius:50%;pointer-events:none;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.3</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.4</span></h1>
   <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -117,9 +125,9 @@ input[type=range]{width:100%}
     ar ar-modes="webxr scene-viewer"
     ar-scale="fixed"
     shadow-intensity="1" shadow-softness=".8"
-    exposure="1" environment-image="neutral">
+    exposure="0.78" environment-image="neutral">
       <div class="badge" id="badge">1 Kasten · Normal · keine Platten</div>
-      <button slot="ar-button" id="arButton">📷 In Umgebung anzeigen</button>
+      
   </model-viewer>
 </div>
 
@@ -557,7 +565,7 @@ captureBtn.onclick=async()=>{
 
 <div id="v9Camera">
  <video id="v9Video" autoplay playsinline muted></video>
- <model-viewer id="v9Model" touch-action="none" interaction-prompt="none" interpolation-decay="0" shadow-intensity="1" shadow-softness=".8" exposure="1"></model-viewer>
+ <model-viewer id="v9Model" touch-action="none" interaction-prompt="none" interpolation-decay="0" shadow-intensity="1" shadow-softness=".8" exposure="0.78"></model-viewer>
  <div id="v9Top">
   <button class="v9Btn" id="v9Back">← Zurück</button>
   <div style="display:flex;gap:7px">
@@ -702,5 +710,28 @@ desktopHandleV9.addEventListener('pointerdown',e=>{if(appMode!=='desktop')return
 desktopHandleV9.addEventListener('pointermove',e=>{if(!v9Handle)return;desktopS=Math.max(.2,Math.min(2.2,v9Handle.s+((e.clientX-v9Handle.x)+(e.clientY-v9Handle.y))/300));applyDesktopTransform()});
 desktopHandleV9.addEventListener('pointerup',()=>v9Handle=null);
 </script>
-</body>
+<script>
+// ===== v9.4: RAL 7035 body material correction =====
+const V94_RAL7035=[0.77,0.78,0.77,1]; // approx. #C5C7C4; screen approximation only
+function v94ApplyRAL7035(mv){
+ try{
+  const mats=mv.model?.materials||[];
+  mats.forEach(mat=>{
+   const pbr=mat.pbrMetallicRoughness;
+   const f=pbr?.baseColorFactor;
+   if(!f||f.length<3)return;
+   const max=Math.max(f[0],f[1],f[2]),min=Math.min(f[0],f[1],f[2]);
+   // only very bright, almost neutral materials = locker painted body;
+   // preserve orange branding, dark display and concrete.
+   if(max>0.88 && (max-min)<0.055){
+     pbr.setBaseColorFactor(V94_RAL7035);
+     if(pbr.setMetallicFactor)pbr.setMetallicFactor(0.05);
+     if(pbr.setRoughnessFactor)pbr.setRoughnessFactor(0.72);
+   }
+  });
+ }catch(e){console.warn('RAL7035 material adjustment skipped',e)}
+}
+viewer.addEventListener('load',()=>v94ApplyRAL7035(viewer));
+v9Model.addEventListener('load',()=>v94ApplyRAL7035(v9Model));
+</script></body>
 </html>
