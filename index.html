@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v9.1</title>
+<title>Tamburi Standort AR v9.2</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -48,7 +48,7 @@ input[type=range]{width:100%}
 #v9Video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #v9Model{position:absolute;inset:0;width:100%;height:100%;background:transparent!important;z-index:2;pointer-events:none;touch-action:none}
 #v9Top{position:absolute;z-index:5;left:0;right:0;top:0;display:flex;justify-content:space-between;padding:12px;background:linear-gradient(#0009,transparent)}
-.v9Btn{border:0;border-radius:999px;background:#0009;color:#fff;padding:10px 14px;font-size:14px}
+.v9Btn{border:0;border-radius:999px;background:#0009;color:#fff;padding:10px 14px;font-size:14px}.v9Btn.activeMode{background:#fff;color:#111}
 #v9Bottom{position:absolute;z-index:5;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:16px;background:linear-gradient(transparent,#000a)}
 #v9Shutter{width:72px;height:72px;border-radius:50%;border:5px solid white;background:#ffffff40}
 #v9Hint{position:absolute;z-index:5;left:50%;bottom:105px;transform:translateX(-50%);color:#fff;background:#0008;padding:7px 10px;border-radius:999px;font-size:12px;white-space:nowrap}
@@ -63,7 +63,7 @@ input[type=range]{width:100%}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.1</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.2</span></h1>
   <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -558,8 +558,14 @@ captureBtn.onclick=async()=>{
 <div id="v9Camera">
  <video id="v9Video" autoplay playsinline muted></video>
  <model-viewer id="v9Model" camera-controls touch-action="none" shadow-intensity="1" shadow-softness=".8" exposure="1"></model-viewer>
- <div id="v9Top"><button class="v9Btn" id="v9Back">← Zurück</button><span class="v9Btn">1 Finger: verschieben · 2 Finger: Größe</span></div>
- <div id="v9Hint">Kasten direkt positionieren</div>
+ <div id="v9Top">
+  <button class="v9Btn" id="v9Back">← Zurück</button>
+  <div style="display:flex;gap:7px">
+    <button class="v9Btn activeMode" id="v9MoveMode">✋ Bewegen</button>
+    <button class="v9Btn" id="v9RotateMode">↻ Schwenken</button>
+  </div>
+</div>
+ <div id="v9Hint">Bewegen: 1 Finger verschieben · 2 Finger skalieren</div>
  <div id="v9Bottom"><button id="v9Shutter" aria-label="Auslöser"></button></div>
 </div>
 <script>
@@ -568,18 +574,37 @@ const v9Camera=document.getElementById('v9Camera'),v9Video=document.getElementBy
 v9Model=document.getElementById('v9Model'),v9Back=document.getElementById('v9Back'),
 v9Shutter=document.getElementById('v9Shutter'),v9Result=document.getElementById('v9Result'),
 v9ResultImg=document.getElementById('v9ResultImg'),v9ResultName=document.getElementById('v9ResultName'),
-v9Save=document.getElementById('v9Save'),v9Discard=document.getElementById('v9Discard');
-let v9Stream=null,v9X=0,v9Y=0,v9S=1,v9Gesture=null,v9Blob=null;
+v9Save=document.getElementById('v9Save'),v9Discard=document.getElementById('v9Discard'),
+v9MoveMode=document.getElementById('v9MoveMode'),v9RotateMode=document.getElementById('v9RotateMode'),
+v9Hint=document.getElementById('v9Hint');
+let v9Stream=null,v9X=0,v9Y=0,v9S=1,v9Gesture=null,v9Blob=null,v9Mode='move',v9Yaw=0,v9Pitch=75;
 
 function v9Apply(){v9Model.style.transformOrigin='center';v9Model.style.transform=`translate(${v9X}px,${v9Y}px) scale(${v9S})`;}
 function v9Dist(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
 function v9Mid(a,b){return{x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2}}
 
+
+function v9SetMode(mode){
+ v9Mode=mode;
+ v9MoveMode.classList.toggle('activeMode',mode==='move');
+ v9RotateMode.classList.toggle('activeMode',mode==='rotate');
+ v9Hint.textContent=mode==='move'
+  ? 'Bewegen: 1 Finger verschieben · 2 Finger skalieren'
+  : 'Schwenken: 1 Finger horizontal/vertikal · 2 Finger skalieren';
+}
+function v9ApplyOrbit(){
+ // model-viewer cameraOrbit: theta phi radius
+ v9Pitch=Math.max(15,Math.min(165,v9Pitch));
+ v9Model.cameraOrbit=`${v9Yaw}deg ${v9Pitch}deg auto`;
+}
+v9MoveMode.onclick=()=>v9SetMode('move');
+v9RotateMode.onclick=()=>v9SetMode('rotate');
+
 async function v9Start(){
  try{
   v9Stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
   v9Video.srcObject=v9Stream; v9Model.src=viewer.src;
-  v9X=0;v9Y=0;v9S=1;v9Apply();
+  v9X=0;v9Y=0;v9S=1;v9Yaw=0;v9Pitch=75;v9Apply();v9ApplyOrbit();v9SetMode('move');
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
   camera.style.display='none';
   photoControls.style.display='none';
@@ -594,17 +619,49 @@ photoModeBtn.onclick=v9Start;
 v9Back.onclick=v9Close;
 
 v9Camera.addEventListener('touchstart',e=>{
- if(e.target.closest('button'))return;e.preventDefault();
- if(e.touches.length===1)v9Gesture={t:'d',sx:e.touches[0].clientX,sy:e.touches[0].clientY,x:v9X,y:v9Y};
- else if(e.touches.length>=2){const m=v9Mid(e.touches[0],e.touches[1]);v9Gesture={t:'p',d:v9Dist(e.touches[0],e.touches[1]),s:v9S,mx:m.x,my:m.y,x:v9X,y:v9Y}}
+ if(e.target.closest('button'))return;
+ e.preventDefault();
+ if(e.touches.length===1){
+   v9Gesture={
+     t:v9Mode==='rotate'?'rotate':'drag',
+     sx:e.touches[0].clientX, sy:e.touches[0].clientY,
+     x:v9X,y:v9Y,yaw:v9Yaw,pitch:v9Pitch
+   };
+ }else if(e.touches.length>=2){
+   const m=v9Mid(e.touches[0],e.touches[1]);
+   v9Gesture={t:'pinch',d:v9Dist(e.touches[0],e.touches[1]),s:v9S,
+              mx:m.x,my:m.y,x:v9X,y:v9Y};
+ }
 },{passive:false});
+
 v9Camera.addEventListener('touchmove',e=>{
- if(!v9Gesture)return;e.preventDefault();
- if(e.touches.length===1&&v9Gesture.t==='d'){v9X=v9Gesture.x+e.touches[0].clientX-v9Gesture.sx;v9Y=v9Gesture.y+e.touches[0].clientY-v9Gesture.sy}
- else if(e.touches.length>=2){if(v9Gesture.t!=='p'){const m=v9Mid(e.touches[0],e.touches[1]);v9Gesture={t:'p',d:v9Dist(e.touches[0],e.touches[1]),s:v9S,mx:m.x,my:m.y,x:v9X,y:v9Y}}
- const m=v9Mid(e.touches[0],e.touches[1]);v9S=Math.max(.2,Math.min(2.5,v9Gesture.s*v9Dist(e.touches[0],e.touches[1])/v9Gesture.d));v9X=v9Gesture.x+m.x-v9Gesture.mx;v9Y=v9Gesture.y+m.y-v9Gesture.my}
- v9Apply()
+ if(!v9Gesture)return;
+ e.preventDefault();
+
+ if(e.touches.length===1 && v9Gesture.t==='drag'){
+   v9X=v9Gesture.x + e.touches[0].clientX-v9Gesture.sx;
+   v9Y=v9Gesture.y + e.touches[0].clientY-v9Gesture.sy;
+   v9Apply();
+ }else if(e.touches.length===1 && v9Gesture.t==='rotate'){
+   const dx=e.touches[0].clientX-v9Gesture.sx;
+   const dy=e.touches[0].clientY-v9Gesture.sy;
+   v9Yaw=v9Gesture.yaw - dx*0.45;
+   v9Pitch=v9Gesture.pitch + dy*0.35;
+   v9ApplyOrbit();
+ }else if(e.touches.length>=2){
+   if(v9Gesture.t!=='pinch'){
+     const m=v9Mid(e.touches[0],e.touches[1]);
+     v9Gesture={t:'pinch',d:v9Dist(e.touches[0],e.touches[1]),s:v9S,
+                mx:m.x,my:m.y,x:v9X,y:v9Y};
+   }
+   const m=v9Mid(e.touches[0],e.touches[1]);
+   v9S=Math.max(.2,Math.min(2.5,v9Gesture.s*v9Dist(e.touches[0],e.touches[1])/v9Gesture.d));
+   v9X=v9Gesture.x+m.x-v9Gesture.mx;
+   v9Y=v9Gesture.y+m.y-v9Gesture.my;
+   v9Apply();
+ }
 },{passive:false});
+
 v9Camera.addEventListener('touchend',e=>{if(!e.touches.length)v9Gesture=null},{passive:false});
 
 v9Shutter.onclick=async()=>{
