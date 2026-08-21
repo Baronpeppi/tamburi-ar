@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v9.4</title>
+<title>Tamburi Standort AR v9.5</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -71,7 +71,7 @@ model-viewer#viewer{background:#b9bdc0!important;}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.4</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.5</span></h1>
   <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -137,7 +137,11 @@ model-viewer#viewer{background:#b9bdc0!important;}
   <div class="sliderrow"><span>Links/Rechts</span><input id="posX" type="range" min="-40" max="40" value="0"><span id="xVal">0</span></div>
   <div class="sliderrow"><span>Hoch/Runter</span><input id="posY" type="range" min="-40" max="40" value="8"><span id="yVal">8</span></div>
   <div style="margin:10px 0 6px" class="label">Optionaler Fotoname</div>
-  <input id="photoName" placeholder="z. B. Hanuschgasse 3">
+  <div style="display:flex;gap:8px;align-items:stretch">
+  <input id="photoName" placeholder="z. B. Hauptstraße 15, 2126 Ladendorf" style="flex:1;min-width:0">
+  <button type="button" class="action" id="locationNameBtn" style="white-space:nowrap">📍 Standort</button>
+</div>
+<div class="small" id="locationStatus" style="margin-top:5px"></div>
   <div class="row" style="margin-top:10px">
     <button class="action capture" id="captureBtn">● Foto speichern</button>
   </div>
@@ -162,7 +166,10 @@ model-viewer#viewer{background:#b9bdc0!important;}
  <div class="label">Aufgenommenes Foto – 1024 × 768</div>
  <img id="v9ResultImg" alt="Standortfoto">
  <div class="label" style="margin-top:10px">Dateiname</div>
- <input id="v9ResultName" placeholder="z. B. Hauptstrasse_15" style="width:100%;padding:10px;border:1px solid #bbb;border-radius:8px">
+ <div style="display:flex;gap:8px;align-items:stretch">
+  <input id="v9ResultName" placeholder="z. B. Hauptstraße 15, 2126 Ladendorf" style="flex:1;min-width:0;padding:10px;border:1px solid #bbb;border-radius:8px">
+  <button type="button" class="action" id="locationResultBtn" style="white-space:nowrap">📍 Standort</button>
+</div>
  <div class="row" style="margin-top:10px">
   <button class="action capture" id="v9Save">Foto speichern</button>
   <button class="action" id="v9Discard">Verwerfen</button>
@@ -733,5 +740,82 @@ function v94ApplyRAL7035(mv){
 }
 viewer.addEventListener('load',()=>v94ApplyRAL7035(viewer));
 v9Model.addEventListener('load',()=>v94ApplyRAL7035(v9Model));
-</script></body>
+</script>
+<script>
+// ===== v9.5 Standort -> Dateiname =====
+const locationNameBtn=document.getElementById('locationNameBtn');
+const locationResultBtn=document.getElementById('locationResultBtn');
+const locationStatus=document.getElementById('locationStatus');
+
+function locationButtonBusy(busy){
+ [locationNameBtn,locationResultBtn].filter(Boolean).forEach(btn=>{
+   btn.disabled=busy;
+   btn.textContent=busy?'📍 Suche…':'📍 Standort';
+ });
+}
+
+function buildAddressName(a){
+ // Austrian/German OSM address fields can vary; support common variants.
+ const road=a.road || a.pedestrian || a.residential || a.footway || a.path || a.cycleway || '';
+ const house=a.house_number || '';
+ const postcode=a.postcode || '';
+ const place=a.city || a.town || a.village || a.municipality || a.hamlet || a.suburb || '';
+
+ const streetPart=[road,house].filter(Boolean).join(' ').trim();
+ const placePart=[postcode,place].filter(Boolean).join(' ').trim();
+
+ return [streetPart,placePart].filter(Boolean).join(', ');
+}
+
+async function reverseGeocode(lat,lon){
+ const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&addressdetails=1&zoom=18&accept-language=de`;
+ const res=await fetch(url,{headers:{'Accept':'application/json'}});
+ if(!res.ok) throw new Error('Adressdienst nicht erreichbar');
+ return await res.json();
+}
+
+async function fillFilenameFromLocation(target){
+ if(!navigator.geolocation){
+   locationStatus.textContent='Standortfunktion wird von diesem Browser nicht unterstützt.';
+   return;
+ }
+ locationButtonBusy(true);
+ locationStatus.textContent='Standort wird ermittelt…';
+ navigator.geolocation.getCurrentPosition(async pos=>{
+   try{
+     const data=await reverseGeocode(pos.coords.latitude,pos.coords.longitude);
+     const address=buildAddressName(data.address||{});
+     if(!address) throw new Error('Keine Straßenadresse gefunden');
+
+     // Set both filename fields so the value is preserved after taking a photo.
+     if(document.getElementById('photoName')) document.getElementById('photoName').value=address;
+     if(document.getElementById('v9ResultName')) document.getElementById('v9ResultName').value=address;
+     if(target) target.value=address;
+
+     locationStatus.textContent=`Standort übernommen${pos.coords.accuracy ? ' · GPS-Genauigkeit ca. '+Math.round(pos.coords.accuracy)+' m' : ''}.`;
+   }catch(e){
+     console.error(e);
+     locationStatus.textContent='Standort gefunden, aber keine vollständige Straßenadresse konnte ermittelt werden.';
+   }finally{
+     locationButtonBusy(false);
+   }
+ },err=>{
+   console.warn(err);
+   let msg='Standort konnte nicht ermittelt werden.';
+   if(err.code===1) msg='Bitte Standortfreigabe für diese Webseite erlauben.';
+   else if(err.code===2) msg='Standort ist momentan nicht verfügbar.';
+   else if(err.code===3) msg='Standortermittlung hat zu lange gedauert.';
+   locationStatus.textContent=msg;
+   locationButtonBusy(false);
+ },{
+   enableHighAccuracy:true,
+   timeout:12000,
+   maximumAge:15000
+ });
+}
+if(locationNameBtn) locationNameBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('photoName'));
+if(locationResultBtn) locationResultBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('v9ResultName'));
+</script>
+
+</body>
 </html>
