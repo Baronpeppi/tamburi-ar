@@ -1,15 +1,10 @@
-Tamburi AR v8 – Mobil/Desktop
-================================
-Neu:
-- Umschalter 📱 Mobil / 🖥️ Desktop
-- Desktopmodus für PC/Notebook
-- Foto/Screenshot laden
-- 3D-Modell mit Maus ziehen
-- Mausrad = Größe
-- Alt + Mausrad = Drehung
-- Regler für Größe und Drehung
-- Desktopbild speichern
-- Mobilmodus v7 bleibt erhalten
-
-Für das Update reicht die index.html.
-Die GLB-Dateien bleiben unverändert.
+Tamburi AR v9
+- Vollbild-Kamera ohne Website-Scrollen
+- 1 Finger verschiebt den Kasten
+- 2 Finger skalieren
+- eigener Auslöser
+- danach automatisch zurück zur Mainpage mit Vorschau/Speichern
+- Kamera-Render exakt 1024x768 Pixel
+- Querformat kompakter
+- Desktop: Maussteuerung bleibt, zusätzlicher Skaliergriff und feinere Slider
+Für das Update reicht index.html.
