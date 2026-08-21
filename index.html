@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v9.2</title>
+<title>Tamburi Standort AR v9.3</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -63,7 +63,7 @@ input[type=range]{width:100%}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.2</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.3</span></h1>
   <div class="sub">AR platzieren oder direkt im Fotomodus dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -557,7 +557,7 @@ captureBtn.onclick=async()=>{
 
 <div id="v9Camera">
  <video id="v9Video" autoplay playsinline muted></video>
- <model-viewer id="v9Model" camera-controls touch-action="none" shadow-intensity="1" shadow-softness=".8" exposure="1"></model-viewer>
+ <model-viewer id="v9Model" touch-action="none" interaction-prompt="none" interpolation-decay="0" shadow-intensity="1" shadow-softness=".8" exposure="1"></model-viewer>
  <div id="v9Top">
   <button class="v9Btn" id="v9Back">← Zurück</button>
   <div style="display:flex;gap:7px">
@@ -590,13 +590,21 @@ function v9SetMode(mode){
  v9RotateMode.classList.toggle('activeMode',mode==='rotate');
  v9Hint.textContent=mode==='move'
   ? 'Bewegen: 1 Finger verschieben · 2 Finger skalieren'
-  : 'Schwenken: 1 Finger horizontal/vertikal · 2 Finger skalieren';
+  : 'Schwenken: 1 Finger horizontal/vertikal · Kasten bleibt danach fix';
 }
 function v9ApplyOrbit(){
- // model-viewer cameraOrbit: theta phi radius
+ // Camera is fully locked unless our own user gesture changes these values.
  v9Pitch=Math.max(15,Math.min(165,v9Pitch));
  v9Model.cameraOrbit=`${v9Yaw}deg ${v9Pitch}deg auto`;
+ // Prevent the tiny "floating" / settling movement caused by interpolation.
+ if(typeof v9Model.jumpCameraToGoal==='function'){
+   v9Model.jumpCameraToGoal();
+ }
 }
+v9Model.addEventListener('load',()=>{
+ v9ApplyOrbit();
+ if(typeof v9Model.jumpCameraToGoal==='function') v9Model.jumpCameraToGoal();
+});
 v9MoveMode.onclick=()=>v9SetMode('move');
 v9RotateMode.onclick=()=>v9SetMode('rotate');
 
