@@ -1,14 +1,10 @@
-Tamburi AR v10.2 – Alle Varianten teilen
-================================================
-Neu:
-- Button „☁️ Alle Varianten teilen“.
-- Übergibt alle aktuell gesammelten Varianten in EINEM Teilen-Vorgang.
-- Dateinamen bleiben:
-  Adresse - Variante 1.jpg
-  Adresse - Variante 2.jpg
-  Adresse - Variante 3.jpg
-- Auf Android kann anschließend z. B. OneDrive gewählt werden.
-- „Aktuelle teilen“ bleibt zusätzlich erhalten.
-- Falls der Browser mehrere Dateien nicht gemeinsam teilen kann, bleibt „Alle Varianten speichern“ als Fallback.
+Tamburi AR v10.5
+
+Geändert:
+- Button „Alle Varianten auf Handy speichern“ entfernt/versteckt.
+- Keine ZIP-Datei mehr.
+- „Aktuelle Variante speichern“ bleibt erhalten.
+- „Alle Varianten teilen“ bleibt erhalten und funktioniert weiterhin für OneDrive.
+- Varianten-Endkontrolle V1/V2/V3 bleibt unverändert.
 
 Für GitHub nur index.html ersetzen.
