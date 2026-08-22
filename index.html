@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v9.8</title>
+<title>Tamburi Standort AR v9.9.1</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -190,11 +190,16 @@ h1{font-size:20px;letter-spacing:-.25px}
 @media(orientation:landscape){
  #v98Frame{height:100vh;width:auto}
 }
+
+#v9Undo{background:#0009;color:#fff}
+#v9Undo:active{background:#fff;color:#111}
+#v99Share{border-color:#5c6873;background:#eef4f8}
+@media(max-width:430px){#v9Top .v9Btn{padding:9px 10px;font-size:12px}#v9Top>div{gap:4px!important}}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.8</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.9.1</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -305,6 +310,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </div>
  <div class="row" style="margin-top:10px">
   <button class="action capture" id="v9Save">Foto speichern</button>
+  <button class="action" id="v99Share">☁️ OneDrive / Teilen</button>
   <button class="action" id="v9Discard">Verwerfen</button>
  </div>
 </div>
@@ -714,6 +720,7 @@ captureBtn.onclick=async()=>{
   <div style="display:flex;gap:7px">
     <button class="v9Btn activeMode" id="v9MoveMode">✋ Bewegen</button>
     <button class="v9Btn" id="v9RotateMode">↻ Schwenken</button>
+    <button class="v9Btn" id="v9Undo" title="Kasten auf Startposition zurücksetzen">↺ Reset</button>
   </div>
 </div>
  <div id="v9Hint">Bewegen: 1 Finger verschieben · 2 Finger skalieren</div>
@@ -734,7 +741,7 @@ v9Model=document.getElementById('v9Model'),v9Back=document.getElementById('v9Bac
 v9Shutter=document.getElementById('v9Shutter'),v9Result=document.getElementById('v9Result'),
 v9ResultImg=document.getElementById('v9ResultImg'),v9ResultName=document.getElementById('v9ResultName'),
 v9Save=document.getElementById('v9Save'),v9Discard=document.getElementById('v9Discard'),
-v9MoveMode=document.getElementById('v9MoveMode'),v9RotateMode=document.getElementById('v9RotateMode'),
+v9MoveMode=document.getElementById('v9MoveMode'),v9RotateMode=document.getElementById('v9RotateMode'),v9Undo=document.getElementById('v9Undo'),
 v9Hint=document.getElementById('v9Hint');
 const v98Frame=document.getElementById('v98Frame');
 const v98Review=document.getElementById('v98Review');
@@ -744,6 +751,17 @@ const v98Confirm=document.getElementById('v98Confirm');
 let v98PendingBlob=null,v98PendingUrl=null;
 
 let v9Stream=null,v9X=0,v9Y=0,v9S=1,v9Gesture=null,v9Blob=null,v9Mode='move',v9Yaw=0,v9Pitch=75;
+function v99ResetPosition(){
+ v9X=0;
+ v9Y=0;
+ v9S=1;
+ v9Yaw=0;
+ v9Pitch=75;
+ v9Apply();
+ v9ApplyOrbit();
+ v9SetMode('move');
+}
+v9Undo.onclick=v99ResetPosition;
 
 function v9Apply(){v9Model.style.transformOrigin='center';v9Model.style.transform=`translate(${v9X}px,${v9Y}px) scale(${v9S})`;}
 function v9Dist(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
@@ -935,6 +953,23 @@ v98Confirm.onclick=()=>{
 };
 
 v9Save.onclick=()=>{if(!v9Blob)return;const a=document.createElement('a');a.href=URL.createObjectURL(v9Blob);a.download=safeName(v9ResultName.value)+'.jpg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
+const v99Share=document.getElementById('v99Share');
+v99Share.onclick=async()=>{
+ if(!v9Blob)return;
+ const filename=safeName(v9ResultName.value)+'.jpg';
+ const file=new File([v9Blob],filename,{type:'image/jpeg'});
+ try{
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+   await navigator.share({files:[file],title:filename});
+   status.textContent='Foto an OneDrive/Teilen übergeben.';
+  }else{
+   status.textContent='Direktes Teilen wird von diesem Browser nicht unterstützt – Foto wird normal gespeichert.';
+   v9Save.click();
+  }
+ }catch(e){
+  if(e&&e.name!=='AbortError')status.textContent='Teilen konnte nicht geöffnet werden.';
+ }
+};
 v9Discard.onclick=()=>{v9Result.classList.remove('show');if(v9ResultImg.src)URL.revokeObjectURL(v9ResultImg.src);v9ResultImg.removeAttribute('src');v9Blob=null};
 
 // Desktop: feinere Slider + Skaliergriff. Export wird auf 1024x768 normalisiert.

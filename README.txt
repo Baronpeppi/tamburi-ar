@@ -1,16 +1,13 @@
-Tamburi AR v9.8
-=================
-Fix:
-- Position im Kameramodus und im 1024x768-Foto stimmen jetzt über denselben 4:3-Aufnahmebereich überein.
-- Sichtbarer 4:3-Rahmen zeigt exakt, welcher Bereich gespeichert wird.
+Tamburi AR v9.9.1
+===================
+Korrektur Punkt 5:
+- Kein klassisches Undo mehr.
+- Button heißt jetzt ↺ Reset.
+- Ein Klick setzt den Kasten sofort auf die Startposition zurück:
+  Position X/Y = Mitte
+  Größe = 100 %
+  Schwenkung = Ausgangsansicht
+  Modus = Bewegen
 
-Neuer Zwischenschritt:
-- Auslöser drücken
-- Kamera bleibt im Vollbildmodus
-- aufgenommenes 1024x768-Foto wird direkt angezeigt
-- X links unten = verwerfen und sofort neues Foto machen
-- Haken rechts unten = übernehmen
-- erst nach Bestätigung Rückkehr zur Mainpage für Benennung/Speichern
-
-Alle bisherigen Funktionen bleiben erhalten.
+OneDrive / Teilen aus v9.9 bleibt erhalten.
 Für GitHub nur index.html ersetzen.
