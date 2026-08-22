@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.1</title>
+<title>Tamburi Standort AR v10.2</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -207,11 +207,13 @@ h1{font-size:20px;letter-spacing:-.25px}
 #v101Delete{border-color:#c54b4b;color:#9b2727;background:#fff}
 #v101SaveAll{background:linear-gradient(135deg,#f28c28,#d96f0d)!important;color:#fff!important;border-color:#d96f0d!important}
 #v10VariantBadges button{cursor:pointer}
+
+#v102ShareAll{background:#eef4f8;border-color:#5c6873;font-weight:600}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.1</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.2</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -335,6 +337,7 @@ h1{font-size:20px;letter-spacing:-.25px}
   <button class="action capture" id="v101SaveAll">Alle Varianten speichern</button>
   <button class="action" id="v9Save">Aktuelle Variante speichern</button>
   <button class="action" id="v99Share">☁️ Aktuelle teilen</button>
+  <button class="action" id="v102ShareAll">☁️ Alle Varianten teilen</button>
   <button class="action" id="v9Discard">Verwerfen</button>
  </div>
 </div>
@@ -1069,6 +1072,7 @@ v101SaveAll.onclick=async()=>{
 
 v9Save.onclick=()=>{if(!v9Blob)return;const a=document.createElement('a');a.href=URL.createObjectURL(v9Blob);a.download=safeName(v9ResultName.value)+'.jpg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
 const v99Share=document.getElementById('v99Share');
+const v102ShareAll=document.getElementById('v102ShareAll');
 v99Share.onclick=async()=>{
  if(!v9Blob)return;
  const filename=safeName(v9ResultName.value)+'.jpg';
@@ -1085,6 +1089,35 @@ v99Share.onclick=async()=>{
   if(e&&e.name!=='AbortError')status.textContent='Teilen konnte nicht geöffnet werden.';
  }
 };
+v102ShareAll.onclick=async()=>{
+ if(!v101Variants.length){
+  status.textContent='Es sind noch keine Varianten vorhanden.';
+  return;
+ }
+ const base=v10BaseName();
+ const files=v101Variants.map((item,i)=>new File(
+   [item.blob],
+   safeName(`${base} - Variante ${i+1}`)+'.jpg',
+   {type:'image/jpeg'}
+ ));
+ try{
+  if(navigator.canShare && navigator.canShare({files})){
+   await navigator.share({
+    files,
+    title:`${base} - ${files.length} Varianten`
+   });
+   status.textContent=`${files.length} Varianten an Teilen/OneDrive übergeben.`;
+  }else{
+   status.textContent='Mehrere Dateien können von diesem Browser nicht gemeinsam geteilt werden. Bitte „Alle Varianten speichern“ verwenden.';
+  }
+ }catch(e){
+  if(e && e.name!=='AbortError'){
+   console.error(e);
+   status.textContent='Alle Varianten konnten nicht gemeinsam geteilt werden.';
+  }
+ }
+};
+
 v9Discard.onclick=()=>v101Delete.click();
 
 // Desktop: feinere Slider + Skaliergriff. Export wird auf 1024x768 normalisiert.
