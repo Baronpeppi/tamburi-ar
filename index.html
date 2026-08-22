@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v9.9.1</title>
+<title>Tamburi Standort AR v10.0</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -195,11 +195,19 @@ h1{font-size:20px;letter-spacing:-.25px}
 #v9Undo:active{background:#fff;color:#111}
 #v99Share{border-color:#5c6873;background:#eef4f8}
 @media(max-width:430px){#v9Top .v9Btn{padding:9px 10px;font-size:12px}#v9Top>div{gap:4px!important}}
+
+#v10VariantBox{margin:12px 0;padding:12px;border:1px solid #dde0e2;border-radius:13px;background:#f7f8f8}
+.v10VariantHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.v10VariantHead small{display:block;color:#73777b;font-size:11px;margin-top:3px}
+#v10VariantBadges{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}
+.v10Badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:28px;padding:0 8px;border-radius:999px;background:#fff;border:1px solid #cfd3d6;font-size:12px;font-weight:700}
+.v10Badge.active{background:#26292d;color:#fff;border-color:#26292d}
+#v10Alternative{flex:2;border-style:dashed;background:#fff}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v9.9.1</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.0</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -308,6 +316,16 @@ h1{font-size:20px;letter-spacing:-.25px}
   <button type="button" class="action" id="locationResultBtn" style="white-space:nowrap">📍 Standort</button>
   <button type="button" class="action" id="katasterResultBtn" style="white-space:nowrap">📐 Kataster</button>
 </div>
+ <div id="v10VariantBox">
+  <div class="v10VariantHead">
+   <div><strong>Aufstellvarianten</strong><small id="v10VariantCount">1 Aufnahme für diesen Standort</small></div>
+   <div id="v10VariantBadges"><span class="v10Badge active">V1</span></div>
+  </div>
+  <div class="row" style="margin-top:0">
+   <button class="action" id="v10Alternative">＋ Alternative aufnehmen</button>
+   <button class="action" id="v10NewSite">Neuer Standort</button>
+  </div>
+ </div>
  <div class="row" style="margin-top:10px">
   <button class="action capture" id="v9Save">Foto speichern</button>
   <button class="action" id="v99Share">☁️ OneDrive / Teilen</button>
@@ -940,6 +958,11 @@ v98Confirm.onclick=()=>{
  const mainUrl=URL.createObjectURL(v9Blob);
  v9ResultImg.src=mainUrl;
  v9ResultName.value=document.getElementById('photoName').value||'Tamburi_Standort';
+ if(v10VariantSession||v10Variant>1){
+  const base=v10BaseName();
+  v9ResultName.value=`${base} - Variante ${v10Variant}`;
+ }
+ v10RefreshVariants();
 
  v98Review.classList.remove('active');
  if(v98PendingUrl){URL.revokeObjectURL(v98PendingUrl);v98PendingUrl=null;}
@@ -950,6 +973,47 @@ v98Confirm.onclick=()=>{
  v9Result.classList.add('show');
  v9Result.scrollIntoView({behavior:'smooth',block:'start'});
  status.textContent='Foto bestätigt – 1024 × 768.';
+};
+
+
+let v10Variant=1,v10VariantSession=false;
+const v10Alternative=document.getElementById('v10Alternative');
+const v10NewSite=document.getElementById('v10NewSite');
+const v10VariantCount=document.getElementById('v10VariantCount');
+const v10VariantBadges=document.getElementById('v10VariantBadges');
+
+function v10BaseName(){
+ let n=(v9ResultName.value||document.getElementById('photoName').value||'Tamburi_Standort').trim();
+ return n.replace(/\s*-\s*Variante\s+\d+\s*$/i,'').trim();
+}
+function v10RefreshVariants(){
+ v10VariantCount.textContent=`${v10Variant} Aufnahme${v10Variant===1?'':'n'} für diesen Standort`;
+ v10VariantBadges.innerHTML='';
+ for(let i=1;i<=v10Variant;i++){
+  const b=document.createElement('span');
+  b.className='v10Badge'+(i===v10Variant?' active':'');
+  b.textContent='V'+i;v10VariantBadges.appendChild(b);
+ }
+}
+v10Alternative.onclick=()=>{
+ const base=v10BaseName();
+ if(v10Variant===1&&!v10VariantSession){
+  v10VariantSession=true;
+  v9ResultName.value=`${base} - Variante 1`;
+ }
+ v10Variant++;
+ document.getElementById('photoName').value=base;
+ v9Result.classList.remove('show');
+ v10RefreshVariants();
+ status.textContent=`Alternative ${v10Variant}: Konfiguration wählen und Fotomodus starten.`;
+ window.scrollTo({top:0,behavior:'smooth'});
+};
+v10NewSite.onclick=()=>{
+ v10Variant=1;v10VariantSession=false;v10RefreshVariants();
+ document.getElementById('photoName').value='';v9ResultName.value='';
+ v9Result.classList.remove('show');
+ status.textContent='Neuer Standort – Adresse eingeben oder über 📍 Standort ermitteln.';
+ window.scrollTo({top:0,behavior:'smooth'});
 };
 
 v9Save.onclick=()=>{if(!v9Blob)return;const a=document.createElement('a');a.href=URL.createObjectURL(v9Blob);a.download=safeName(v9ResultName.value)+'.jpg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
