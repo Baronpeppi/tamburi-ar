@@ -1,11 +1,19 @@
-Tamburi AR v10.0 – Aufstellvarianten
+Tamburi AR v10.1 – Varianten-Endkontrolle
+=========================================
+NEU:
+- Fotos müssen nicht mehr sofort gespeichert werden.
+- Jede bestätigte Aufnahme bleibt im Browser-Speicher des aktuellen Standorts.
+- V1, V2, V3 ... sind anklickbar und zeigen die jeweilige Aufnahme.
+- Beliebig viele Alternativen.
+- „Variante löschen“ entfernt die aktuell angezeigte Variante.
+- Nach Löschen automatische lückenlose Neunummerierung.
+- „Alle Varianten speichern“ lädt alle bestätigten Fotos mit korrekter Nummerierung herunter.
+- „Aktuelle Variante speichern“ bleibt für Einzelfälle.
+- „Aktuelle teilen“ teilt die gerade ausgewählte Variante.
+- „Neuer Standort“ leert die temporäre Variantenserie.
 
-- Beliebig viele Alternativen pro Standort.
-- Nach bestätigtem Foto: „+ Alternative aufnehmen“.
-- Adresse bleibt erhalten; Kasten/Sockel/Platten können neu gewählt werden.
-- V1/V2/V3... Anzeige.
-- Bei mehreren Alternativen automatische Dateinamen „... - Variante 1“, „... - Variante 2“ usw.
-- „Neuer Standort“ beendet die Serie.
-- Alle Funktionen aus v9.9.1 bleiben erhalten.
+WICHTIG:
+Die noch nicht gespeicherten Varianten liegen nur im Browser-Arbeitsspeicher.
+Seite nicht neu laden/schließen, bevor die gewünschten Fotos gespeichert wurden.
 
 Für GitHub nur index.html ersetzen.

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.0</title>
+<title>Tamburi Standort AR v10.1</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -203,11 +203,15 @@ h1{font-size:20px;letter-spacing:-.25px}
 .v10Badge{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:28px;padding:0 8px;border-radius:999px;background:#fff;border:1px solid #cfd3d6;font-size:12px;font-weight:700}
 .v10Badge.active{background:#26292d;color:#fff;border-color:#26292d}
 #v10Alternative{flex:2;border-style:dashed;background:#fff}
+
+#v101Delete{border-color:#c54b4b;color:#9b2727;background:#fff}
+#v101SaveAll{background:linear-gradient(135deg,#f28c28,#d96f0d)!important;color:#fff!important;border-color:#d96f0d!important}
+#v10VariantBadges button{cursor:pointer}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.0</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.1</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -323,12 +327,14 @@ h1{font-size:20px;letter-spacing:-.25px}
   </div>
   <div class="row" style="margin-top:0">
    <button class="action" id="v10Alternative">＋ Alternative aufnehmen</button>
+   <button class="action" id="v101Delete">🗑 Variante löschen</button>
    <button class="action" id="v10NewSite">Neuer Standort</button>
   </div>
  </div>
  <div class="row" style="margin-top:10px">
-  <button class="action capture" id="v9Save">Foto speichern</button>
-  <button class="action" id="v99Share">☁️ OneDrive / Teilen</button>
+  <button class="action capture" id="v101SaveAll">Alle Varianten speichern</button>
+  <button class="action" id="v9Save">Aktuelle Variante speichern</button>
+  <button class="action" id="v99Share">☁️ Aktuelle teilen</button>
   <button class="action" id="v9Discard">Verwerfen</button>
  </div>
 </div>
@@ -954,31 +960,28 @@ v98Retake.onclick=()=>{
 
 v98Confirm.onclick=()=>{
  if(!v98PendingBlob)return;
- v9Blob=v98PendingBlob;
- const mainUrl=URL.createObjectURL(v9Blob);
- v9ResultImg.src=mainUrl;
- v9ResultName.value=document.getElementById('photoName').value||'Tamburi_Standort';
- if(v10VariantSession||v10Variant>1){
-  const base=v10BaseName();
-  v9ResultName.value=`${base} - Variante ${v10Variant}`;
- }
- v10RefreshVariants();
 
+ const acceptedBlob=v98PendingBlob;
  v98Review.classList.remove('active');
  if(v98PendingUrl){URL.revokeObjectURL(v98PendingUrl);v98PendingUrl=null;}
  v98ReviewImg.removeAttribute('src');
  v98PendingBlob=null;
 
  v9Close();
+ v101Add(acceptedBlob);
  v9Result.classList.add('show');
  v9Result.scrollIntoView({behavior:'smooth',block:'start'});
- status.textContent='Foto bestätigt – 1024 × 768.';
+ status.textContent=`Variante ${v101Variants.length} bestätigt – 1024 × 768.`;
 };
 
 
 let v10Variant=1,v10VariantSession=false;
+let v101Variants=[];
+let v101Current=0;
 const v10Alternative=document.getElementById('v10Alternative');
 const v10NewSite=document.getElementById('v10NewSite');
+const v101Delete=document.getElementById('v101Delete');
+const v101SaveAll=document.getElementById('v101SaveAll');
 const v10VariantCount=document.getElementById('v10VariantCount');
 const v10VariantBadges=document.getElementById('v10VariantBadges');
 
@@ -986,34 +989,82 @@ function v10BaseName(){
  let n=(v9ResultName.value||document.getElementById('photoName').value||'Tamburi_Standort').trim();
  return n.replace(/\s*-\s*Variante\s+\d+\s*$/i,'').trim();
 }
+function v101Name(i){return `${v10BaseName()} - Variante ${i+1}`;}
+function v101Show(i){
+ if(!v101Variants.length)return;
+ v101Current=Math.max(0,Math.min(v101Variants.length-1,i));
+ const item=v101Variants[v101Current];
+ v9Blob=item.blob;
+ v9ResultImg.src=item.url;
+ v9ResultName.value=v101Name(v101Current);
+ v10RefreshVariants();
+}
 function v10RefreshVariants(){
- v10VariantCount.textContent=`${v10Variant} Aufnahme${v10Variant===1?'':'n'} für diesen Standort`;
+ const n=v101Variants.length;
+ v10VariantCount.textContent=`${n} Aufnahme${n===1?'':'n'} für diesen Standort`;
  v10VariantBadges.innerHTML='';
- for(let i=1;i<=v10Variant;i++){
-  const b=document.createElement('span');
-  b.className='v10Badge'+(i===v10Variant?' active':'');
-  b.textContent='V'+i;v10VariantBadges.appendChild(b);
- }
+ v101Variants.forEach((item,i)=>{
+  const b=document.createElement('button');
+  b.type='button';
+  b.className='v10Badge'+(i===v101Current?' active':'');
+  b.textContent='V'+(i+1);
+  b.onclick=()=>v101Show(i);
+  v10VariantBadges.appendChild(b);
+ });
+}
+function v101Add(blob){
+ const url=URL.createObjectURL(blob);
+ v101Variants.push({blob,url});
+ v101Current=v101Variants.length-1;
+ v10Variant=v101Variants.length;
+ v10VariantSession=v101Variants.length>1;
+ v101Show(v101Current);
 }
 v10Alternative.onclick=()=>{
  const base=v10BaseName();
- if(v10Variant===1&&!v10VariantSession){
-  v10VariantSession=true;
-  v9ResultName.value=`${base} - Variante 1`;
- }
- v10Variant++;
  document.getElementById('photoName').value=base;
  v9Result.classList.remove('show');
- v10RefreshVariants();
- status.textContent=`Alternative ${v10Variant}: Konfiguration wählen und Fotomodus starten.`;
+ status.textContent=`Alternative ${v101Variants.length+1}: Konfiguration wählen und Fotomodus starten.`;
  window.scrollTo({top:0,behavior:'smooth'});
 };
+v101Delete.onclick=()=>{
+ if(!v101Variants.length)return;
+ const item=v101Variants[v101Current];
+ if(item.url)URL.revokeObjectURL(item.url);
+ v101Variants.splice(v101Current,1);
+ if(!v101Variants.length){
+  v9Blob=null;v9ResultImg.removeAttribute('src');v9Result.classList.remove('show');
+  v10RefreshVariants();
+  status.textContent='Variante gelöscht – noch keine Aufnahme für diesen Standort.';
+  return;
+ }
+ if(v101Current>=v101Variants.length)v101Current=v101Variants.length-1;
+ v10Variant=v101Variants.length;v10VariantSession=v101Variants.length>1;
+ v101Show(v101Current);
+ status.textContent='Variante gelöscht – verbleibende Varianten wurden neu nummeriert.';
+};
 v10NewSite.onclick=()=>{
- v10Variant=1;v10VariantSession=false;v10RefreshVariants();
+ v101Variants.forEach(x=>{if(x.url)URL.revokeObjectURL(x.url)});
+ v101Variants=[];v101Current=0;v10Variant=1;v10VariantSession=false;
+ v10RefreshVariants();
  document.getElementById('photoName').value='';v9ResultName.value='';
- v9Result.classList.remove('show');
+ v9Result.classList.remove('show');v9Blob=null;v9ResultImg.removeAttribute('src');
  status.textContent='Neuer Standort – Adresse eingeben oder über 📍 Standort ermitteln.';
  window.scrollTo({top:0,behavior:'smooth'});
+};
+v101SaveAll.onclick=async()=>{
+ if(!v101Variants.length)return;
+ const base=v10BaseName();
+ // Browsers may ask permission for multiple downloads.
+ for(let i=0;i<v101Variants.length;i++){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(v101Variants[i].blob);
+  a.download=safeName(`${base} - Variante ${i+1}`)+'.jpg';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);
+  await new Promise(r=>setTimeout(r,220));
+ }
+ status.textContent=`${v101Variants.length} Varianten zum Speichern übergeben.`;
 };
 
 v9Save.onclick=()=>{if(!v9Blob)return;const a=document.createElement('a');a.href=URL.createObjectURL(v9Blob);a.download=safeName(v9ResultName.value)+'.jpg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)};
@@ -1034,7 +1085,7 @@ v99Share.onclick=async()=>{
   if(e&&e.name!=='AbortError')status.textContent='Teilen konnte nicht geöffnet werden.';
  }
 };
-v9Discard.onclick=()=>{v9Result.classList.remove('show');if(v9ResultImg.src)URL.revokeObjectURL(v9ResultImg.src);v9ResultImg.removeAttribute('src');v9Blob=null};
+v9Discard.onclick=()=>v101Delete.click();
 
 // Desktop: feinere Slider + Skaliergriff. Export wird auf 1024x768 normalisiert.
 desktopScale.step='1';desktopRotate.step='1';
