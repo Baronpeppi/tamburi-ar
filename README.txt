@@ -1,22 +1,23 @@
-Tamburi AR v10.17 – Desktop Verschieben & Schwenken
+Tamburi AR v10.18 – Desktop Auswahl- und Export-Fix
 
-Neu im Desktopmodus:
-- ✋ Verschieben
-  Linke Maustaste gedrückt halten und Kasten verschieben.
-- ↻ Schwenken
-  Linke Maustaste gedrückt halten und Maus horizontal/vertikal bewegen.
-  Dadurch wird der echte 3D-Blickwinkel verändert.
-- ↺ Reset
-  Position, Größe und Schwenkung zurück auf Start.
-- Größe
-  Mausrad oder Größenbalken.
-- Größenbereich 15–220 %.
+Behoben:
+1) Blaues Markieren beim Verschieben
+- Browser-Text-/Bildauswahl im Desktop-Vorschaubereich deaktiviert.
+- Hintergrundfoto ist nicht mehr draggable.
+- Pointer-Drag verhindert Standard-Browserauswahl.
+- Beim Verschieben wird nur der Kasten bedient.
 
-Entfernt:
-- Alter 2D-Drehungsbalken / Alt+Mausrad-Drehung.
-  Stattdessen echtes 3D-Schwenken wie am Smartphone.
+2) Gespeichertes Desktopfoto war zu klein
+Ursache:
+- Canvas war 1024x768, aber Hintergrund und Modell wurden noch in den Pixelmaßen
+  der Bildschirm-Vorschau hineingezeichnet.
+- Dadurch belegte das eigentliche Foto nur einen Teil des 1024x768-Bildes.
 
-Der gespeicherte Desktop-Screenshot übernimmt den aktuellen 3D-Schwenkwinkel.
-Bestehende Upload-, 1024x768- und Mobile-Funktionen bleiben erhalten.
+Fix:
+- Export rechnet Vorschaukoordinaten jetzt sauber auf 1024x768 um.
+- Hintergrundbild füllt den verfügbaren 4:3-Bereich proportional.
+- Position und Größe des Kastens werden proportional aus der Desktop-Vorschau übertragen.
+- 3D-Schwenkwinkel bleibt erhalten.
+- Ausgabe immer exakt 1024x768 Pixel.
 
 Für GitHub nur index.html ersetzen.

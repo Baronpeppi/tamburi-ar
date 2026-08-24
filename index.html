@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.17</title>
+<title>Tamburi Standort AR v10.18</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -324,11 +324,31 @@ h1{font-size:20px;letter-spacing:-.25px}
  background:#26292d;color:#fff;border-color:#26292d
 }
 #desktopModeControls{margin:8px 0 10px}
+
+/* v10.18 – Desktop dragging without browser selection */
+.desktopMode #stage,
+.desktopMode #stage *{
+  -webkit-user-select:none!important;
+  user-select:none!important;
+}
+.desktopMode #stage{
+  cursor:grab;
+}
+.desktopMode #stage:active{
+  cursor:grabbing;
+}
+.desktopMode #importedPhoto{
+  pointer-events:none!important;
+  -webkit-user-drag:none!important;
+}
+.desktopMode #viewer{
+  pointer-events:none!important;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.17</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.18</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -381,7 +401,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 <div id="stage">
   <div id="desktopStageHint">Desktop: Kasten mit Maus ziehen · Mausrad = Größe · Alt + Mausrad = Drehen</div>
   <div id="desktopHandle">↘</div>
-  <img id="importedPhoto" alt="" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111">
+  <img id="importedPhoto" alt="" draggable="false" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111">
   <video id="camera" autoplay playsinline muted></video>
   <model-viewer id="viewer" class="normalMode"
     src="normal_1.glb"
@@ -742,6 +762,8 @@ desktopScale.oninput=()=>{
 const stageEl=document.getElementById('stage');
 stageEl.addEventListener('pointerdown',e=>{
   if(appMode!=='desktop' || e.target.closest('button,label,input')) return;
+  e.preventDefault();
+  window.getSelection?.().removeAllRanges();
   dragging=true;
   dragStart={
     x:e.clientX,y:e.clientY,
@@ -801,56 +823,94 @@ async function saveDesktopImage(){
     status.textContent='Bitte zuerst ein Foto/Screenshot laden.';
     return;
   }
+
   try{
+    status.textContent='Desktopbild wird erstellt …';
+
     const stage=document.getElementById('stage');
-    const stageW=stage.clientWidth, stageH=stage.clientHeight;
-    const dpr=Math.min(2,window.devicePixelRatio||1);
-    canvas.width=1024;
-    canvas.height=768;
+    const stageW=stage.clientWidth;
+    const stageH=stage.clientHeight;
+    if(!stageW || !stageH) throw new Error('Vorschau hat keine gültige Größe');
+
+    const W=1024,H=768;
+    canvas.width=W;
+    canvas.height=H;
     const ctx=canvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#111';
+    ctx.fillRect(0,0,W,H);
 
-    // imported image contain-fit, like preview
-    ctx.fillStyle='#111';ctx.fillRect(0,0,stageW,stageH);
-    const iw=importedPhoto.naturalWidth, ih=importedPhoto.naturalHeight;
-    const fit=Math.min(stageW/iw,stageH/ih);
-    const dw=iw*fit, dh=ih*fit;
-    ctx.drawImage(importedPhoto,(stageW-dw)/2,(stageH-dh)/2,dw,dh);
+    // Hintergrund genauso wie in der Vorschau: contain-fit, aber auf 1024x768 skaliert.
+    const iw=importedPhoto.naturalWidth;
+    const ih=importedPhoto.naturalHeight;
+    if(!iw || !ih) throw new Error('Foto hat keine gültige Größe');
 
-    // Render clean 3D snapshot without CSS transform
+    const bgFit=Math.min(W/iw,H/ih);
+    const bgW=iw*bgFit;
+    const bgH=ih*bgFit;
+    ctx.drawImage(importedPhoto,(W-bgW)/2,(H-bgH)/2,bgW,bgH);
+
+    // Aktuellen 3D-Schwenkwinkel verwenden.
+    applyDesktopOrbit();
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
     const oldTransform=viewer.style.transform;
     const oldOrigin=viewer.style.transformOrigin;
     const oldBadge=badge.style.display;
     badge.style.display='none';
     viewer.style.transform='none';
-    viewer.style.transformOrigin='center';
+    viewer.style.transformOrigin='center center';
+
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     const blob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
+
     viewer.style.transform=oldTransform;
     viewer.style.transformOrigin=oldOrigin;
     badge.style.display=oldBadge;
 
     const bmp=await createImageBitmap(blob);
     const bmpAR=bmp.width/bmp.height;
-    let drawH=stageH*desktopS;
-    let drawW=drawH*bmpAR;
-    if(drawW>stageW*desktopS){drawW=stageW*desktopS;drawH=drawW/bmpAR;}
-    const cx=stageW/2+desktopX, cy=stageH/2+desktopY;
+
+    // Modelgröße aus der sichtbaren Stage auf 1024x768 übertragen.
+    const mapX=W/stageW;
+    const mapY=H/stageH;
+
+    let previewH=stageH*desktopS;
+    let previewW=previewH*bmpAR;
+    if(previewW>stageW*desktopS){
+      previewW=stageW*desktopS;
+      previewH=previewW/bmpAR;
+    }
+
+    const drawW=previewW*mapX;
+    const drawH=previewH*mapY;
+
+    // DesktopX/Y sind Pixel in der Vorschau -> proportional auf Export abbilden.
+    const cx=W/2 + desktopX*mapX;
+    const cy=H/2 + desktopY*mapY;
 
     ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
+    bmp.close?.();
 
     const name=safeName(document.getElementById('photoName').value||'Tamburi_Desktop');
-    canvas.toBlob(outBlob=>{
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(outBlob);
-      a.download=name+'.jpg';
-      a.click();
-      setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-      status.textContent='Desktopbild gespeichert: '+name+'.jpg';
-    },'image/jpeg',.95);
+
+    const outBlob=await new Promise((resolve,reject)=>{
+      canvas.toBlob(b=>b?resolve(b):reject(new Error('Kein JPEG erzeugt')),'image/jpeg',.95);
+    });
+
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(outBlob);
+    a.download=name+'.jpg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),2500);
+
+    status.textContent='Desktopbild gespeichert: '+name+'.jpg · 1024 × 768';
   }catch(e){
-    console.error(e);
-    status.textContent='Desktopbild konnte nicht gespeichert werden.';
+    console.error('Desktop-Export fehlgeschlagen:',e);
+    status.textContent='Desktopbild konnte nicht gespeichert werden: '+(e.message||'unbekannter Fehler');
   }
 }
 desktopSaveBtn.onclick=saveDesktopImage;
