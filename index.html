@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.18</title>
+<title>Tamburi Standort AR v10.19</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -348,7 +348,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.18</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.19</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -1582,7 +1582,7 @@ v102ShareAll.onclick=async()=>{
 v9Discard.onclick=()=>v101Delete.click();
 
 // Desktop: feinere Slider + Skaliergriff. Export wird auf 1024x768 normalisiert.
-desktopScale.step='1';desktopRotate.step='1';
+desktopScale.step='1';
 const desktopHandleV9=document.getElementById('desktopHandle');let v9Handle=null;
 desktopHandleV9.addEventListener('pointerdown',e=>{if(appMode!=='desktop')return;e.stopPropagation();v9Handle={x:e.clientX,y:e.clientY,s:desktopS};desktopHandleV9.setPointerCapture(e.pointerId)});
 desktopHandleV9.addEventListener('pointermove',e=>{if(!v9Handle)return;desktopS=Math.max(.2,Math.min(2.2,v9Handle.s+((e.clientX-v9Handle.x)+(e.clientY-v9Handle.y))/300));applyDesktopTransform()});
