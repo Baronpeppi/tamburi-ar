@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.22</title>
+<title>Tamburi Standort AR v10.23</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -366,11 +366,31 @@ h1{font-size:20px;letter-spacing:-.25px}
 .desktopMode #desktopHandle{
   display:none!important;
 }
+
+/* v10.23 – Mobile Upload: normale Vorschau entspricht exakt dem 4:3-Vollbild */
+body:not(.desktopMode) #stage.mobilePhotoLoaded{
+  width:100%;
+  height:auto!important;
+  min-height:0!important;
+  aspect-ratio:4/3;
+  background:#000!important;
+}
+body:not(.desktopMode) #stage.mobilePhotoLoaded #importedPhoto{
+  width:100%;
+  height:100%;
+  object-fit:contain!important;
+  inset:0;
+}
+body:not(.desktopMode) #stage.mobilePhotoLoaded #viewer{
+  width:100%;
+  height:100%;
+  inset:0;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.22</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.23</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -460,7 +480,7 @@ h1{font-size:20px;letter-spacing:-.25px}
   <div class="row" style="margin-top:10px">
     <button class="action capture" id="captureBtn">● Foto speichern</button>
   </div>
-  <div class="small">Vorhandene Fotos können geladen und mit dem ausgewählten Kasten visualisiert werden. Speicherung: 1024 × 768 px.</div>
+  <div class="small">Vorhandene Fotos werden nach dem Vollbild ebenfalls in 4:3 angezeigt. Speicherung: 1024 × 768 px.</div>
 </div>
 
 <div id="desktopTools">
@@ -1910,8 +1930,8 @@ v1014FS.addEventListener('touchmove',e=>{
 
 v1014FS.addEventListener('touchend',e=>{if(!e.touches.length)v1014Gesture=null},{passive:false});
 
-v1014Use.onclick=()=>{
- // Store the exact placement relative to the visible 4:3 output frame.
+v1014Use.onclick=async()=>{
+ // Store exact placement relative to the visible 4:3 fullscreen frame.
  const rect=v1016Frame.getBoundingClientRect();
  v1016AcceptedPlacement={
    xNorm:v1014X/rect.width,
@@ -1926,10 +1946,15 @@ v1014Use.onclick=()=>{
  posY.value=Math.max(-80,Math.min(80,v1016AcceptedPlacement.yNorm*100));
  importedYaw=v1014Yaw;
  importedPitch=v1014Pitch;
+
+ v1014Close();
+ document.getElementById('stage').classList.add('mobilePhotoLoaded');
+ await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
  applyTransform();
  applyImportedOrbit();
- v1014Close();
- status.textContent='Vollbild-Position übernommen – Ausgabe entspricht dem 4:3-Rahmen.';
+
+ status.textContent='Vollbild-Position übernommen – Vorschau und Export sind jetzt identisch 4:3.';
 };
 
 // On mobile, uploaded photos now open directly in fullscreen.
