@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.6</title>
+<title>Tamburi Standort AR v10.7</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -215,7 +215,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.6</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.7</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -416,6 +416,50 @@ async function startImportedPhoto(file){
  if(!file) return;
  status.textContent='Bild wird geladen…';
 
+ async function loadIntoImgFromUrl(url){
+   return await new Promise((resolve,reject)=>{
+     const cleanup=()=>{
+       importedPhoto.onload=null;
+       importedPhoto.onerror=null;
+     };
+     importedPhoto.onload=()=>{
+       cleanup();
+       resolve(url);
+     };
+     importedPhoto.onerror=()=>{
+       cleanup();
+       reject(new Error('img decode failed'));
+     };
+     importedPhoto.src=url;
+   });
+ }
+
+ async function fileToDataUrl(f){
+   return await new Promise((resolve,reject)=>{
+     const reader=new FileReader();
+     reader.onload=()=>resolve(reader.result);
+     reader.onerror=()=>reject(reader.error||new Error('FileReader failed'));
+     reader.readAsDataURL(f);
+   });
+ }
+
+ async function decodeViaBitmap(f){
+   if(typeof createImageBitmap!=='function') throw new Error('createImageBitmap unavailable');
+   const bmp=await createImageBitmap(f);
+   const c=document.createElement('canvas');
+   c.width=bmp.width;
+   c.height=bmp.height;
+   const cx=c.getContext('2d');
+   cx.drawImage(bmp,0,0);
+   bmp.close?.();
+   return await new Promise((resolve,reject)=>{
+     c.toBlob(b=>{
+       if(!b) return reject(new Error('canvas conversion failed'));
+       resolve(b);
+     },'image/jpeg',0.95);
+   });
+ }
+
  try{
    let sourceFile=file;
    const name=(file.name||'').toLowerCase();
@@ -424,8 +468,6 @@ async function startImportedPhoto(file){
      type.includes('heic') || type.includes('heif') ||
      name.endsWith('.heic') || name.endsWith('.heif');
 
-   // Chrome/Edge on Windows cannot reliably decode HEIC/HEIF.
-   // Convert locally in the browser to JPEG before displaying it.
    if(isHeic){
      if(typeof heic2any!=='function'){
        throw new Error('HEIC-Konverter konnte nicht geladen werden');
@@ -440,17 +482,35 @@ async function startImportedPhoto(file){
      );
    }
 
-   const newURL=URL.createObjectURL(sourceFile);
+   let loadedUrl=null;
+   let objectUrl=null;
 
-   // Load the new image first. Only revoke the previous URL after success.
-   await new Promise((resolve,reject)=>{
-     importedPhoto.onload=()=>resolve();
-     importedPhoto.onerror=()=>reject(new Error('Browser konnte dieses Bildformat nicht dekodieren'));
-     importedPhoto.src=newURL;
-   });
+   // Versuch 1: normaler Blob/ObjectURL-Weg
+   try{
+     objectUrl=URL.createObjectURL(sourceFile);
+     loadedUrl=await loadIntoImgFromUrl(objectUrl);
+   }catch(e1){
+     if(objectUrl){ URL.revokeObjectURL(objectUrl); objectUrl=null; }
 
-   if(importedObjectURL) URL.revokeObjectURL(importedObjectURL);
-   importedObjectURL=newURL;
+     // Versuch 2: FileReader/DataURL – hilft bei einigen Windows-/Browser-Sonderfällen
+     try{
+       status.textContent='Bild wird über alternativen JPG-Ladeweg geöffnet…';
+       const dataUrl=await fileToDataUrl(sourceFile);
+       loadedUrl=await loadIntoImgFromUrl(dataUrl);
+     }catch(e2){
+       // Versuch 3: createImageBitmap + Canvas neu enkodieren
+       status.textContent='JPG wird neu aufbereitet…';
+       const rebuilt=await decodeViaBitmap(sourceFile);
+       objectUrl=URL.createObjectURL(rebuilt);
+       loadedUrl=await loadIntoImgFromUrl(objectUrl);
+     }
+   }
+
+   // Nur ObjectURLs müssen später freigegeben werden.
+   if(importedObjectURL && importedObjectURL.startsWith('blob:')){
+     URL.revokeObjectURL(importedObjectURL);
+   }
+   importedObjectURL = (typeof loadedUrl==='string' && loadedUrl.startsWith('blob:')) ? loadedUrl : null;
 
    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
    camera.style.display='none';
@@ -460,7 +520,6 @@ async function startImportedPhoto(file){
    importedPhotoMode=true;
    photoMode=true;
 
-   // Desktop uses its mouse workflow; mobile keeps the existing slider workflow.
    if(appMode==='desktop'){
      photoControls.style.display='none';
      photoModeBtn.style.display='none';

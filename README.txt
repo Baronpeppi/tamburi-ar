@@ -1,11 +1,12 @@
-Tamburi AR v10.6 – Desktop Foto-Upload Fix
+Tamburi AR v10.7 – Desktop JPG-Fallback
 
-Geändert:
-- Desktop-Upload von Fotos/Screenshots robuster gemacht.
-- JPG, PNG und WebP werden normal geladen.
-- HEIC/HEIF (häufig bei Smartphone-Fotos) werden direkt im Browser lokal in JPG umgewandelt.
-- Alte Bild-URL wird erst nach erfolgreichem Laden des neuen Bildes freigegeben.
-- Desktopmodus verwendet nach dem Import direkt die Maussteuerung.
-- Mobilfunktionen, Varianten, Kamera, Reset, Standort, Kataster und OneDrive/Teilen bleiben unverändert.
+Neu:
+- 3-stufiger Bildimport für Desktop:
+  1) normaler ObjectURL-Weg
+  2) FileReader/DataURL-Fallback
+  3) createImageBitmap + Canvas-Neukodierung als letzter Fallback
+- Besonders für JPGs aus Windows/OneDrive/anderen Computern robuster.
+- HEIC/HEIF-Unterstützung aus v10.6 bleibt erhalten.
+- Restliche App-Funktionen unverändert.
 
 Für GitHub nur index.html ersetzen.
