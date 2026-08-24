@@ -1,19 +1,22 @@
-Tamburi AR v10.16 – Positions-Fix Uploadfoto
+Tamburi AR v10.17 – Desktop Verschieben & Schwenken
 
-Problem:
-Die Position im Vollbild-Uploadmodus wurde bisher relativ zum gesamten
-Smartphone-Bildschirm gespeichert. Der Export ist aber 1024x768 (4:3).
-Dadurch verschob sich der Kasten im fertigen Bild.
+Neu im Desktopmodus:
+- ✋ Verschieben
+  Linke Maustaste gedrückt halten und Kasten verschieben.
+- ↻ Schwenken
+  Linke Maustaste gedrückt halten und Maus horizontal/vertikal bewegen.
+  Dadurch wird der echte 3D-Blickwinkel verändert.
+- ↺ Reset
+  Position, Größe und Schwenkung zurück auf Start.
+- Größe
+  Mausrad oder Größenbalken.
+- Größenbereich 15–220 %.
 
-Fix:
-- Im Vollbildmodus gibt es jetzt einen echten 4:3-Aufnahmerahmen.
-- Hintergrund + Kasten liegen beide exakt innerhalb dieses Rahmens.
-- Position wird relativ zu genau diesem Rahmen gespeichert.
-- Export verwendet dieselben normierten X/Y-Werte und dieselbe Skalierung.
-- Schwenkwinkel wird ebenfalls exakt aus der bestätigten Vollbildansicht übernommen.
-- Ausgabe bleibt immer 1024 x 768 Pixel.
+Entfernt:
+- Alter 2D-Drehungsbalken / Alt+Mausrad-Drehung.
+  Stattdessen echtes 3D-Schwenken wie am Smartphone.
 
-Damit soll gelten:
-Was im 4:3-Rahmen vor dem Übernehmen zu sehen ist, ist auch die gespeicherte Position.
+Der gespeicherte Desktop-Screenshot übernimmt den aktuellen 3D-Schwenkwinkel.
+Bestehende Upload-, 1024x768- und Mobile-Funktionen bleiben erhalten.
 
 Für GitHub nur index.html ersetzen.

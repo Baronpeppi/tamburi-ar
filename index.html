@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.16</title>
+<title>Tamburi Standort AR v10.17</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -319,11 +319,16 @@ h1{font-size:20px;letter-spacing:-.25px}
  #v1014Bottom{padding:7px}
  .v1014Confirm{padding:10px 18px}
 }
+
+#desktopModeControls .choice.active{
+ background:#26292d;color:#fff;border-color:#26292d
+}
+#desktopModeControls{margin:8px 0 10px}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.16</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.17</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -422,12 +427,21 @@ h1{font-size:20px;letter-spacing:-.25px}
     <label class="action" style="cursor:pointer">🖼️ Foto/Screenshot laden
       <input id="desktopPhotoUpload" type="file" accept="image/jpeg,image/png,image/webp,.heic,.heif" style="display:none">
     </label>
-    <button class="action" id="resetDesktopBtn">Ansicht zurücksetzen</button>
     <button class="action capture" id="desktopSaveBtn">Bild speichern</button>
   </div>
-  <div class="sliderrow"><span>Größe</span><input id="desktopScale" type="range" min="20" max="220" value="100"><span id="desktopScaleVal">100%</span></div>
-  <div class="sliderrow"><span>Drehung</span><input id="desktopRotate" type="range" min="-180" max="180" value="0"><span id="desktopRotateVal">0°</span></div>
-  <div class="small">Im Desktopmodus kannst du das Modell direkt mit der Maus verschieben. Mausrad ändert die Größe, Alt + Mausrad die Drehung.</div>
+
+  <div class="row" id="desktopModeControls">
+    <button class="choice active" id="desktopMoveBtn">✋ Verschieben</button>
+    <button class="choice" id="desktopRotateBtn">↻ Schwenken</button>
+    <button class="choice" id="resetDesktopBtn">↺ Reset</button>
+  </div>
+
+  <div class="sliderrow">
+    <span>Größe</span>
+    <input id="desktopScale" type="range" min="15" max="220" value="100">
+    <span id="desktopScaleVal">100%</span>
+  </div>
+  <div class="small" id="desktopModeHint">Verschieben: linke Maustaste ziehen · Größe: Mausrad oder Balken</div>
 </div>
 
 <div id="v9Result">
@@ -479,13 +493,15 @@ const desktopModeBtn=document.getElementById('desktopModeBtn');
 const desktopTools=document.getElementById('desktopTools');
 const desktopPhotoUpload=document.getElementById('desktopPhotoUpload');
 const desktopScale=document.getElementById('desktopScale');
-const desktopRotate=document.getElementById('desktopRotate');
+const desktopMoveBtn=document.getElementById('desktopMoveBtn');
+const desktopRotateBtn=document.getElementById('desktopRotateBtn');
+const desktopModeHint=document.getElementById('desktopModeHint');
+
 const desktopScaleVal=document.getElementById('desktopScaleVal');
-const desktopRotateVal=document.getElementById('desktopRotateVal');
 const resetDesktopBtn=document.getElementById('resetDesktopBtn');
 const desktopSaveBtn=document.getElementById('desktopSaveBtn');
 let appMode='mobile';
-let desktopX=0, desktopY=0, desktopS=1, desktopR=0, dragging=false, dragStart=null;
+let desktopX=0, desktopY=0, desktopS=1, dragging=false, dragStart=null, desktopInteractionMode='move', desktopYaw=0, desktopPitch=75;
 const photoUpload=document.getElementById('photoUpload');
 const importedPhoto=document.getElementById('importedPhoto');
 let importedPhotoMode=false, importedObjectURL=null;
@@ -684,6 +700,8 @@ function setMode(mode){
     viewer.setAttribute('camera-controls','');
     status.textContent='Desktopmodus aktiv.';
     applyDesktopTransform();
+    applyDesktopOrbit();
+    setDesktopInteractionMode('move');
   } else {
     document.getElementById('stage').classList.remove('desktopPhotoLoaded');
     if(importedPhotoMode) document.getElementById('stage').classList.add('mobilePhotoLoaded');
@@ -697,26 +715,56 @@ desktopModeBtn.onclick=()=>setMode('desktop');
 
 function applyDesktopTransform(){
   viewer.style.transformOrigin='center center';
-  viewer.style.transform=`translate(${desktopX}px, ${desktopY}px) scale(${desktopS}) rotate(${desktopR}deg)`;
+  viewer.style.transform=`translate(${desktopX}px, ${desktopY}px) scale(${desktopS})`;
   desktopScale.value=Math.round(desktopS*100);
-  desktopRotate.value=Math.round(desktopR);
   desktopScaleVal.textContent=Math.round(desktopS*100)+'%';
-  desktopRotateVal.textContent=Math.round(desktopR)+'°';
 }
-desktopScale.oninput=()=>{desktopS=Number(desktopScale.value)/100;applyDesktopTransform();}
-desktopRotate.oninput=()=>{desktopR=Number(desktopRotate.value);applyDesktopTransform();}
+function applyDesktopOrbit(){
+  desktopPitch=Math.max(15,Math.min(165,desktopPitch));
+  viewer.cameraOrbit=`${desktopYaw}deg ${desktopPitch}deg auto`;
+  if(typeof viewer.jumpCameraToGoal==='function') viewer.jumpCameraToGoal();
+}
+function setDesktopInteractionMode(mode){
+  desktopInteractionMode=mode;
+  desktopMoveBtn.classList.toggle('active',mode==='move');
+  desktopRotateBtn.classList.toggle('active',mode==='rotate');
+  desktopModeHint.textContent=mode==='move'
+    ? 'Verschieben: linke Maustaste ziehen · Größe: Mausrad oder Balken'
+    : 'Schwenken: linke Maustaste ziehen · Größe: Mausrad oder Balken';
+}
+desktopMoveBtn.onclick=()=>setDesktopInteractionMode('move');
+desktopRotateBtn.onclick=()=>setDesktopInteractionMode('rotate');
+desktopScale.oninput=()=>{
+  desktopS=Math.max(.15,Math.min(2.2,Number(desktopScale.value)/100));
+  applyDesktopTransform();
+};
 
 const stageEl=document.getElementById('stage');
 stageEl.addEventListener('pointerdown',e=>{
   if(appMode!=='desktop' || e.target.closest('button,label,input')) return;
-  dragging=true; dragStart={x:e.clientX,y:e.clientY,dx:desktopX,dy:desktopY};
+  dragging=true;
+  dragStart={
+    x:e.clientX,y:e.clientY,
+    dx:desktopX,dy:desktopY,
+    yaw:desktopYaw,pitch:desktopPitch,
+    mode:desktopInteractionMode
+  };
   stageEl.setPointerCapture(e.pointerId);
 });
 stageEl.addEventListener('pointermove',e=>{
   if(!dragging || appMode!=='desktop') return;
-  desktopX=dragStart.dx+(e.clientX-dragStart.x);
-  desktopY=dragStart.dy+(e.clientY-dragStart.y);
-  applyDesktopTransform();
+
+  if(dragStart.mode==='rotate'){
+    const dx=e.clientX-dragStart.x;
+    const dy=e.clientY-dragStart.y;
+    desktopYaw=dragStart.yaw-dx*.35;
+    desktopPitch=dragStart.pitch+dy*.28;
+    applyDesktopOrbit();
+  }else{
+    desktopX=dragStart.dx+(e.clientX-dragStart.x);
+    desktopY=dragStart.dy+(e.clientY-dragStart.y);
+    applyDesktopTransform();
+  }
 });
 stageEl.addEventListener('pointerup',()=>dragging=false);
 stageEl.addEventListener('pointercancel',()=>dragging=false);
@@ -724,18 +772,17 @@ stageEl.addEventListener('pointercancel',()=>dragging=false);
 stageEl.addEventListener('wheel',e=>{
   if(appMode!=='desktop') return;
   e.preventDefault();
-  if(e.altKey){
-    desktopR += e.deltaY>0 ? 5 : -5;
-  }else{
-    desktopS *= e.deltaY>0 ? 0.95 : 1.05;
-    desktopS=Math.max(.2,Math.min(2.2,desktopS));
-  }
+  desktopS*=e.deltaY>0 ? .95 : 1.05;
+  desktopS=Math.max(.15,Math.min(2.2,desktopS));
   applyDesktopTransform();
 },{passive:false});
 
 resetDesktopBtn.onclick=()=>{
-  desktopX=0;desktopY=0;desktopS=1;desktopR=0;
+  desktopX=0;desktopY=0;desktopS=1;
+  desktopYaw=0;desktopPitch=75;
   applyDesktopTransform();
+  applyDesktopOrbit();
+  setDesktopInteractionMode('move');
   status.textContent='Kasten auf Startposition zurückgesetzt.';
 };
 
@@ -744,7 +791,9 @@ desktopPhotoUpload.onchange=async e=>{
   if(!file) return;
   await startImportedPhoto(file);
   setMode('desktop');
-  status.textContent='Desktopfoto geladen – Modell mit Maus positionieren.';
+  desktopX=0;desktopY=0;desktopS=1;desktopYaw=0;desktopPitch=75;
+  applyDesktopTransform();applyDesktopOrbit();setDesktopInteractionMode('move');
+  status.textContent='Desktopfoto geladen – Verschieben oder Schwenken wählen.';
 };
 
 async function saveDesktopImage(){
@@ -788,11 +837,7 @@ async function saveDesktopImage(){
     if(drawW>stageW*desktopS){drawW=stageW*desktopS;drawH=drawW/bmpAR;}
     const cx=stageW/2+desktopX, cy=stageH/2+desktopY;
 
-    ctx.save();
-    ctx.translate(cx,cy);
-    ctx.rotate(desktopR*Math.PI/180);
-    ctx.drawImage(bmp,-drawW/2,-drawH/2,drawW,drawH);
-    ctx.restore();
+    ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
 
     const name=safeName(document.getElementById('photoName').value||'Tamburi_Desktop');
     canvas.toBlob(outBlob=>{
