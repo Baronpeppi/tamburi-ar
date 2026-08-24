@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.21</title>
+<title>Tamburi Standort AR v10.22</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -355,7 +355,7 @@ h1{font-size:20px;letter-spacing:-.25px}
   background:#111;
 }
 .desktopMode #stage.desktopPhotoLoaded #importedPhoto{
-  object-fit:contain;
+  object-fit:cover;
 }
 .desktopMode #stage.desktopPhotoLoaded #viewer{
   width:100%;
@@ -370,7 +370,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.21</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.22</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -483,6 +483,14 @@ h1{font-size:20px;letter-spacing:-.25px}
     <input id="desktopScale" type="range" min="15" max="220" value="100">
     <span id="desktopScaleVal">100%</span>
   </div>
+
+  <div class="label" style="margin-top:10px">Dateiname</div>
+  <div style="display:flex;gap:8px;align-items:stretch;margin-top:6px">
+    <input id="desktopPhotoName" placeholder="z. B. Hauptstraße 15, 2126 Ladendorf"
+      style="flex:1;min-width:0;padding:10px;border:1px solid #bbb;border-radius:8px;font-size:14px">
+    <button type="button" class="action" id="desktopLocationBtn" style="white-space:nowrap">📍 Standort</button>
+  </div>
+
   <div class="small" id="desktopModeHint">Verschieben: linke Maustaste ziehen · Größe: Mausrad oder Balken</div>
 </div>
 
@@ -538,6 +546,9 @@ const desktopScale=document.getElementById('desktopScale');
 const desktopMoveBtn=document.getElementById('desktopMoveBtn');
 const desktopRotateBtn=document.getElementById('desktopRotateBtn');
 const desktopModeHint=document.getElementById('desktopModeHint');
+const desktopPhotoName=document.getElementById('desktopPhotoName');
+const desktopLocationBtn=document.getElementById('desktopLocationBtn');
+
 
 const desktopScaleVal=document.getElementById('desktopScaleVal');
 const resetDesktopBtn=document.getElementById('resetDesktopBtn');
@@ -840,6 +851,7 @@ desktopPhotoUpload.onchange=async e=>{
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   desktopX=0;desktopY=0;desktopS=1;desktopYaw=0;desktopPitch=75;
   applyDesktopTransform();applyDesktopOrbit();setDesktopInteractionMode('move');
+  desktopPhotoName.value=document.getElementById('photoName').value||desktopPhotoName.value||'';
   status.textContent='Desktopfoto geladen – 4:3-Vorschau entspricht dem späteren 1024×768-Bild.';
 };
 
@@ -871,7 +883,7 @@ async function saveDesktopImage(){
     const ih=importedPhoto.naturalHeight;
     if(!iw || !ih) throw new Error('Foto hat keine gültige Größe');
 
-    const bgFit=Math.min(W/iw,H/ih);
+    const bgFit=Math.max(W/iw,H/ih);
     const bgW=iw*bgFit;
     const bgH=ih*bgFit;
     ctx.drawImage(importedPhoto,(W-bgW)/2,(H-bgH)/2,bgW,bgH);
@@ -897,12 +909,17 @@ async function saveDesktopImage(){
 
     const bmp=await createImageBitmap(modelBlob);
 
-    // Die Vorschau ist exakt 4:3. Daher nur EIN einheitlicher Maßstab –
-    // keine getrennte X-/Y-Skalierung und somit keine Verzerrung.
+    // Vorschau und Export sind beide 4:3.
+    // Modell bleibt proportional: Snapshot-Seitenverhältnis niemals verändern.
     const map=W/stageW;
+    const bmpAR=bmp.width/bmp.height;
 
-    const drawW=W*desktopS;
-    const drawH=H*desktopS;
+    let drawH=H*desktopS;
+    let drawW=drawH*bmpAR;
+    if(drawW>W*desktopS){
+      drawW=W*desktopS;
+      drawH=drawW/bmpAR;
+    }
 
     const cx=W/2 + desktopX*map;
     const cy=H/2 + desktopY*map;
@@ -910,7 +927,7 @@ async function saveDesktopImage(){
     ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
     bmp.close?.();
 
-    const name=safeName(document.getElementById('photoName').value||'Tamburi_Desktop');
+    const name=safeName(desktopPhotoName.value||document.getElementById('photoName').value||'Tamburi_Desktop');
     const outBlob=await new Promise((resolve,reject)=>{
       canvas.toBlob(b=>b?resolve(b):reject(new Error('Kein JPEG erzeugt')),'image/jpeg',.95);
     });
@@ -1681,6 +1698,7 @@ async function fillFilenameFromLocation(target){
      // Set both filename fields so the value is preserved after taking a photo.
      if(document.getElementById('photoName')) document.getElementById('photoName').value=address;
      if(document.getElementById('v9ResultName')) document.getElementById('v9ResultName').value=address;
+     if(document.getElementById('desktopPhotoName')) document.getElementById('desktopPhotoName').value=address;
      if(target) target.value=address;
 
      locationStatus.textContent=`Standort übernommen${pos.coords.accuracy ? ' · GPS-Genauigkeit ca. '+Math.round(pos.coords.accuracy)+' m' : ''}.`;
@@ -1749,6 +1767,8 @@ if(katasterBtn) katasterBtn.onclick=openKatasterFromLocation;
 if(katasterResultBtn) katasterResultBtn.onclick=openKatasterFromLocation;
 
 if(locationNameBtn) locationNameBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('photoName'));
+if(desktopLocationBtn) desktopLocationBtn.onclick=()=>fillFilenameFromLocation(desktopPhotoName);
+
 if(locationResultBtn) locationResultBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('v9ResultName'));
 </script>
 

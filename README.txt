@@ -1,11 +1,14 @@
-Tamburi AR v10.21 – Desktop Arbeitsfläche kompakter
+Tamburi AR v10.22 – Desktop Feinfix
 
-Geändert:
-- Desktop-4:3-Vorschau ist nicht mehr über die gesamte Monitorbreite.
-- Arbeitsfläche wird zentriert und auf eine sinnvolle Größe begrenzt.
-- Sie bleibt weiterhin exakt 4:3, damit Position und Export 1024x768 übereinstimmen.
-- Der störende Auswahl-Schriftzug/Badge ist im Desktop-Fotomodus wieder ausgeblendet.
-- Desktop-Hinweis und alter Skaliergriff im Bildbereich sind ebenfalls ausgeblendet.
-- Verschieben, Schwenken, Reset, Mausrad und Größenbalken bleiben erhalten.
+Behoben:
+- Kasten im gespeicherten Desktopbild nicht mehr verzerrt.
+  Das Modell behält immer sein echtes Snapshot-Seitenverhältnis.
+- Schwarze Balken/Striche oben und unten entfernt.
+  Desktop-Vorschau und Export verwenden jetzt "cover" für das Hintergrundfoto.
+- Desktop-Dateiname ergänzt.
+  Eigener Dateiname direkt unter den Desktop-Werkzeugen.
+- Standort-Button auch für Desktop-Dateiname.
+- Export weiterhin exakt 1024x768.
+- Verschieben, Schwenken, Reset und Größensteuerung bleiben erhalten.
 
 Für GitHub nur index.html ersetzen.
