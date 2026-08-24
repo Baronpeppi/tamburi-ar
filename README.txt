@@ -1,14 +1,16 @@
-Tamburi AR v10.14 – Vollbildmodus für hochgeladene Fotos
+Tamburi AR v10.15 – Fotoexport Fix
 
-Neu:
-- Beim Foto/Screenshot-Upload am Smartphone öffnet sich jetzt automatisch ein Vollbildmodus.
-- Oben: Verschieben / Schwenken / Reset.
-- 1 Finger = je nach Modus verschieben oder schwenken.
-- 2 Finger = Größe.
-- Größenbereich 15–220 %.
-- Hochgeladenes Foto bleibt fest im Hintergrund.
-- Mit „✓ Übernehmen“ wird die Position in den normalen Foto-/Speicherworkflow übernommen.
-- „← Zurück“ schließt den Vollbildmodus ohne Übernahme.
+Behoben:
+- Fehler beim Speichern eines hochgeladenen Fotos/Screenshots.
+- Ursache: alter Zugriff auf einen inzwischen nicht mehr vorhandenen AR-Button.
+- Export wurde zusätzlich komplett auf eine feste Ausgabe umgestellt.
 
-Desktop bleibt vorerst unverändert.
+Ausgabe:
+- Immer exakt 1024 x 768 Pixel.
+- Hintergrundbild bleibt proportional und wird nicht verzerrt.
+- Kasten wird mit der gewählten Position, Größe und Schwenkung gerendert.
+- Fehlermeldung zeigt jetzt den tatsächlichen Exportfehler an, falls noch etwas scheitert.
+
+Vollbild-Uploadmodus aus v10.14 bleibt erhalten.
+
 Für GitHub nur index.html ersetzen.

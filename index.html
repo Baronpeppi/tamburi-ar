@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.14</title>
+<title>Tamburi Standort AR v10.15</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -309,7 +309,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.14</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.15</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -399,7 +399,7 @@ h1{font-size:20px;letter-spacing:-.25px}
   <div class="row" style="margin-top:10px">
     <button class="action capture" id="captureBtn">● Foto speichern</button>
   </div>
-  <div class="small">Vorhandene Fotos können ebenfalls geladen und mit dem ausgewählten Kasten visualisiert werden.</div>
+  <div class="small">Vorhandene Fotos können geladen und mit dem ausgewählten Kasten visualisiert werden. Speicherung: 1024 × 768 px.</div>
 </div>
 
 <div id="desktopTools">
@@ -981,103 +981,106 @@ captureBtn.onclick=async()=>{
  try{
    status.textContent='Foto wird erstellt …';
 
-   const stage=document.getElementById('stage');
-   const stageW=stage.clientWidth;
-   const stageH=stage.clientHeight;
-   const dpr=Math.min(2,window.devicePixelRatio||1);
-
-   // Ausgabe entspricht bewusst der sichtbaren Foto-Vorschau.
-   canvas.width=Math.round(stageW*dpr);
-   canvas.height=Math.round(stageH*dpr);
+   // Feste Zielauflösung – unabhängig von Displaygröße oder Geräte-Pixelverhältnis.
+   const W=1024, H=768;
+   canvas.width=W;
+   canvas.height=H;
    const ctx=canvas.getContext('2d');
-   ctx.setTransform(dpr,0,0,dpr,0,0);
+   ctx.setTransform(1,0,0,1,0,0);
+   ctx.clearRect(0,0,W,H);
 
-   // 1) Hintergrund exakt wie in der Vorschau zeichnen.
+   // 1) Hintergrund auf 1024x768 proportional einpassen.
    if(importedPhotoMode){
-     ctx.fillStyle='#111'; ctx.fillRect(0,0,stageW,stageH);
-     const iw=importedPhoto.naturalWidth, ih=importedPhoto.naturalHeight;
-     const fit=Math.min(stageW/iw,stageH/ih);
-     const dw=iw*fit, dh=ih*fit;
-     ctx.drawImage(importedPhoto,(stageW-dw)/2,(stageH-dh)/2,dw,dh);
+     ctx.fillStyle='#111';
+     ctx.fillRect(0,0,W,H);
+
+     const iw=importedPhoto.naturalWidth;
+     const ih=importedPhoto.naturalHeight;
+     if(!iw || !ih) throw new Error('Hintergrundbild hat keine gültige Größe');
+
+     const fit=Math.min(W/iw,H/ih);
+     const bgW=iw*fit;
+     const bgH=ih*fit;
+     ctx.drawImage(importedPhoto,(W-bgW)/2,(H-bgH)/2,bgW,bgH);
    }else{
-     const vw=camera.videoWidth||stageW, vh=camera.videoHeight||stageH;
-     const videoAR=vw/vh, stageAR=stageW/stageH;
+     const vw=camera.videoWidth||1920;
+     const vh=camera.videoHeight||1080;
+     const targetAR=W/H;
+     const videoAR=vw/vh;
      let sx=0,sy=0,sw=vw,sh=vh;
-     if(videoAR>stageAR){sw=vh*stageAR;sx=(vw-sw)/2;}
-     else{sh=vw/stageAR;sy=(vh-sh)/2;}
-     ctx.drawImage(camera,sx,sy,sw,sh,0,0,stageW,stageH);
+     if(videoAR>targetAR){
+       sw=vh*targetAR;
+       sx=(vw-sw)/2;
+     }else{
+       sh=vw/targetAR;
+       sy=(vh-sh)/2;
+     }
+     ctx.drawImage(camera,sx,sy,sw,sh,0,0,W,H);
    }
 
-   // 2) 3D-Modell transparent rendern.
+   // 2) 3D-Modell sauber und transparent rendern.
    if(typeof viewer.toBlob!=='function'){
      throw new Error('model-viewer toBlob nicht verfügbar');
    }
 
-   // Badge/AR-Button kurzfristig ausblenden.
    const oldBadgeDisplay=badge.style.display;
    const arBtn=document.getElementById('arButton');
-   const oldArDisplay=arBtn.style.display;
-   badge.style.display='none';
-   arBtn.style.display='none';
-
-   // CSS transform temporär entfernen, weil wir ihn unten pixelgenau selbst anwenden.
+   const oldArDisplay=arBtn ? arBtn.style.display : null;
    const oldTransform=viewer.style.transform;
+   const oldOrigin=viewer.style.transformOrigin;
+
+   badge.style.display='none';
+   if(arBtn) arBtn.style.display='none';
    viewer.style.transform='none';
+   viewer.style.transformOrigin='center center';
 
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   const modelBlob=await viewer.toBlob({mimeType:'image/png', idealAspect:true});
+   const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
 
    viewer.style.transform=oldTransform;
+   viewer.style.transformOrigin=oldOrigin;
    badge.style.display=oldBadgeDisplay;
-   arBtn.style.display=oldArDisplay;
+   if(arBtn) arBtn.style.display=oldArDisplay;
 
    const bmp=await createImageBitmap(modelBlob);
 
-   // 3) Exakt dieselben Reglerwerte wie in der Vorschau anwenden.
-   const s=Number(scale.value)/100;
-   const xPct=Number(posX.value);
-   const yPct=Number(posY.value);
+   // 3) Position/Größe aus dem Upload-Modus auf die feste 4:3-Ausgabe übertragen.
+   const s=Math.max(.15,Math.min(2.20,Number(scale.value)/100));
+   const xPct=Number(posX.value)||0;
+   const yPct=Number(posY.value)||0;
 
-   // CSS translate(%): Prozent bezieht sich auf die Größe des transformierten Elements
-   // (hier Stage/Viewer-Größe). CSS transform wird von rechts nach links angewandt:
-   // translate(...) scale(...). Für die visuelle Vorschau genügt diese Zielbox-Berechnung.
-   // v6: Snapshot NICHT auf Stage-Seitenverhältnis verzerren.
-   // Das Modell wird proportional anhand seines eigenen Snapshot-Seitenverhältnisses skaliert.
    const bmpAR=bmp.width/bmp.height;
-   let drawH=stageH*s;
+   let drawH=H*s;
    let drawW=drawH*bmpAR;
-
-   // Sicherheitsbegrenzung: falls der Snapshot breiter als die Stage wäre,
-   // proportional über die Breite skalieren.
-   if(drawW>stageW*s){
-     drawW=stageW*s;
+   if(drawW>W*s){
+     drawW=W*s;
      drawH=drawW/bmpAR;
    }
 
-   const dx=(stageW-drawW)/2 + stageW*(xPct/100);
-   const dy=(stageH-drawH)/2 + stageH*(yPct/100);
-
-   ctx.drawImage(bmp,dx,dy,drawW,drawH);
+   const cx=W/2 + W*(xPct/100);
+   const cy=H/2 + H*(yPct/100);
+   ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
+   bmp.close?.();
 
    const name=safeName(document.getElementById('photoName').value);
-   canvas.toBlob(blob=>{
-     if(!blob) throw new Error('Kein Bild erzeugt');
-     const a=document.createElement('a');
-     a.href=URL.createObjectURL(blob);
-     a.download=name+'.jpg';
-     document.body.appendChild(a);
-     a.click();
-     a.remove();
-     setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-     status.textContent='Foto gespeichert: '+name+'.jpg';
-   },'image/jpeg',.95);
+   const outBlob=await new Promise((resolve,reject)=>{
+     canvas.toBlob(b=>b?resolve(b):reject(new Error('Kein JPEG erzeugt')),'image/jpeg',.95);
+   });
 
+   const a=document.createElement('a');
+   a.href=URL.createObjectURL(outBlob);
+   a.download=name+'.jpg';
+   document.body.appendChild(a);
+   a.click();
+   a.remove();
+   setTimeout(()=>URL.revokeObjectURL(a.href),2500);
+
+   status.textContent='Foto gespeichert: '+name+'.jpg · 1024 × 768';
  }catch(e){
-   console.error(e);
-   status.textContent='Foto konnte nicht gespeichert werden. Bitte Screenshot als Fallback verwenden.';
+   console.error('Fotoexport fehlgeschlagen:',e);
+   status.textContent='Foto konnte nicht gespeichert werden: '+(e.message||'unbekannter Fehler');
  }
-};
-</script>
+};</script>
 
 <div id="v9Camera">
  <video id="v9Video" autoplay playsinline muted></video>
