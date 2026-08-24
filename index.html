@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.20</title>
+<title>Tamburi Standort AR v10.21</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -345,12 +345,13 @@ h1{font-size:20px;letter-spacing:-.25px}
   pointer-events:none!important;
 }
 
-/* v10.20 – Desktop Vorschau = exakt derselbe 4:3-Bereich wie der Export */
+/* v10.21 – Desktop 4:3-Arbeitsfläche kompakt und zentriert */
 .desktopMode #stage.desktopPhotoLoaded{
-  width:100%;
+  width:min(100%, 1100px, calc((100vh - 360px) * 4 / 3));
   height:auto!important;
   min-height:0!important;
   aspect-ratio:4/3;
+  margin:0 auto;
   background:#111;
 }
 .desktopMode #stage.desktopPhotoLoaded #importedPhoto{
@@ -360,11 +361,16 @@ h1{font-size:20px;letter-spacing:-.25px}
   width:100%;
   height:100%;
 }
+.desktopMode #stage.desktopPhotoLoaded .badge,
+.desktopMode #desktopStageHint,
+.desktopMode #desktopHandle{
+  display:none!important;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.20</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.21</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -415,7 +421,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </div>
 
 <div id="stage">
-  <div id="desktopStageHint">Desktop: 4:3-Vorschau = gespeichertes 1024×768-Bild</div>
+  <div id="desktopStageHint">4:3-Vorschau = gespeichertes 1024×768-Bild</div>
   <div id="desktopHandle">↘</div>
   <img id="importedPhoto" alt="" draggable="false" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111">
   <video id="camera" autoplay playsinline muted></video>
@@ -722,7 +728,7 @@ function setMode(mode){
   if(mode==='desktop'){
     document.getElementById('stage').classList.remove('mobilePhotoLoaded');
     viewer.setAttribute('camera-controls','');
-    badge.style.display='block';
+    badge.style.display=importedPhotoMode?'none':'block';
     mobileUploadTools.style.display='none';
     if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
     camera.style.display='none';
@@ -830,6 +836,7 @@ desktopPhotoUpload.onchange=async e=>{
   await startImportedPhoto(file);
   setMode('desktop');
   document.getElementById('stage').classList.add('desktopPhotoLoaded');
+  badge.style.display='none';
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   desktopX=0;desktopY=0;desktopS=1;desktopYaw=0;desktopPitch=75;
   applyDesktopTransform();applyDesktopOrbit();setDesktopInteractionMode('move');
