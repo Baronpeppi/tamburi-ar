@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.15</title>
+<title>Tamburi Standort AR v10.16</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -270,12 +270,26 @@ h1{font-size:20px;letter-spacing:-.25px}
  overflow:hidden;touch-action:none;overscroll-behavior:none;
 }
 #v1014UploadFullscreen.active{display:block}
+#v1016Frame{
+ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+ width:min(100vw,calc(100vh * 4 / 3));aspect-ratio:4/3;
+ overflow:hidden;background:#000;z-index:1;
+}
 #v1014UploadBg{
  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:0
 }
 #v1014UploadModel{
  position:absolute;inset:0;width:100%;height:100%;z-index:2;background:transparent!important;
  --poster-color:transparent!important;pointer-events:none;touch-action:none
+}
+#v1016FrameBorder{
+ position:absolute;inset:0;border:2px solid rgba(255,255,255,.65);z-index:4;pointer-events:none
+}
+@media(orientation:portrait){
+ #v1016Frame{width:100vw;height:auto}
+}
+@media(orientation:landscape){
+ #v1016Frame{height:100vh;width:auto}
 }
 #v1014Top{
  position:absolute;left:0;right:0;top:0;z-index:5;display:flex;justify-content:space-between;
@@ -309,7 +323,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.15</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.16</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -1018,6 +1032,14 @@ captureBtn.onclick=async()=>{
      ctx.drawImage(camera,sx,sy,sw,sh,0,0,W,H);
    }
 
+   // Für hochgeladene Fotos exakt den im 4:3-Vollbild bestätigten Blickwinkel verwenden.
+   if(importedPhotoMode && v1016AcceptedPlacement){
+     importedYaw=v1016AcceptedPlacement.yaw;
+     importedPitch=v1016AcceptedPlacement.pitch;
+     applyImportedOrbit();
+     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   }
+
    // 2) 3D-Modell sauber und transparent rendern.
    if(typeof viewer.toBlob!=='function'){
      throw new Error('model-viewer toBlob nicht verfügbar');
@@ -1045,9 +1067,11 @@ captureBtn.onclick=async()=>{
    const bmp=await createImageBitmap(modelBlob);
 
    // 3) Position/Größe aus dem Upload-Modus auf die feste 4:3-Ausgabe übertragen.
-   const s=Math.max(.15,Math.min(2.20,Number(scale.value)/100));
-   const xPct=Number(posX.value)||0;
-   const yPct=Number(posY.value)||0;
+   const accepted=(importedPhotoMode && v1016AcceptedPlacement) ? v1016AcceptedPlacement : null;
+   const s=accepted ? accepted.scale : Math.max(.15,Math.min(2.20,Number(scale.value)/100));
+   const xPct=accepted ? accepted.xNorm*100 : (Number(posX.value)||0);
+   const yPct=accepted ? accepted.yNorm*100 : (Number(posY.value)||0);
+
 
    const bmpAR=bmp.width/bmp.height;
    let drawH=H*s;
@@ -1609,15 +1633,18 @@ if(locationResultBtn) locationResultBtn.onclick=()=>fillFilenameFromLocation(doc
 
 
 <div id="v1014UploadFullscreen">
-  <img id="v1014UploadBg" alt="">
-  <model-viewer id="v1014UploadModel"
-    touch-action="none"
-    interaction-prompt="none"
-    interpolation-decay="0"
-    shadow-intensity="1"
-    shadow-softness=".8"
-    exposure="0.78">
-  </model-viewer>
+  <div id="v1016Frame">
+    <img id="v1014UploadBg" alt="">
+    <model-viewer id="v1014UploadModel"
+      touch-action="none"
+      interaction-prompt="none"
+      interpolation-decay="0"
+      shadow-intensity="1"
+      shadow-softness=".8"
+      exposure="0.78">
+    </model-viewer>
+    <div id="v1016FrameBorder"></div>
+  </div>
 
   <div id="v1014Top">
     <button class="v1014Btn" id="v1014Back">← Zurück</button>
@@ -1628,7 +1655,7 @@ if(locationResultBtn) locationResultBtn.onclick=()=>fillFilenameFromLocation(doc
     </div>
   </div>
 
-  <div id="v1014Hint">1 Finger: verschieben · 2 Finger: Größe</div>
+  <div id="v1014Hint">4:3 = späteres Foto · 1 Finger: verschieben · 2 Finger: Größe</div>
 
   <div id="v1014Bottom">
     <button class="v1014Confirm" id="v1014Use">✓ Übernehmen</button>
@@ -1647,6 +1674,9 @@ const v1014Rotate=document.getElementById('v1014Rotate');
 const v1014Reset=document.getElementById('v1014Reset');
 const v1014Use=document.getElementById('v1014Use');
 const v1014Hint=document.getElementById('v1014Hint');
+const v1016Frame=document.getElementById('v1016Frame');
+let v1016AcceptedPlacement=null;
+
 
 let v1014Mode='move',v1014X=0,v1014Y=0,v1014S=1,v1014Yaw=0,v1014Pitch=75,v1014Gesture=null;
 
@@ -1676,6 +1706,7 @@ function v1014Mid(a,b){return{x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/
 
 function v1014OpenFromImported(){
  if(!importedPhotoMode || !importedPhoto.src)return;
+ v1016AcceptedPlacement=null;
  v1014Bg.src=importedPhoto.src;
  v1014Model.src=viewer.src;
  v1014ResetAll();
@@ -1693,6 +1724,9 @@ v1014Reset.onclick=v1014ResetAll;
 
 v1014FS.addEventListener('touchstart',e=>{
  if(e.target.closest('button'))return;
+ const fr=v1016Frame.getBoundingClientRect();
+ const t=e.touches[0];
+ if(!t || t.clientX<fr.left || t.clientX>fr.right || t.clientY<fr.top || t.clientY>fr.bottom) return;
  e.preventDefault();
  if(e.touches.length===1){
   v1014Gesture={
@@ -1736,17 +1770,25 @@ v1014FS.addEventListener('touchmove',e=>{
 v1014FS.addEventListener('touchend',e=>{if(!e.touches.length)v1014Gesture=null},{passive:false});
 
 v1014Use.onclick=()=>{
- // Transfer fullscreen placement/orbit back to the normal imported-photo state.
+ // Store the exact placement relative to the visible 4:3 output frame.
+ const rect=v1016Frame.getBoundingClientRect();
+ v1016AcceptedPlacement={
+   xNorm:v1014X/rect.width,
+   yNorm:v1014Y/rect.height,
+   scale:v1014S,
+   yaw:v1014Yaw,
+   pitch:v1014Pitch
+ };
+
  scale.value=Math.round(v1014S*100);
- const rect=v1014FS.getBoundingClientRect();
- posX.value=Math.max(-80,Math.min(80,(v1014X/rect.width)*100));
- posY.value=Math.max(-80,Math.min(80,(v1014Y/rect.height)*100));
+ posX.value=Math.max(-80,Math.min(80,v1016AcceptedPlacement.xNorm*100));
+ posY.value=Math.max(-80,Math.min(80,v1016AcceptedPlacement.yNorm*100));
  importedYaw=v1014Yaw;
  importedPitch=v1014Pitch;
  applyTransform();
  applyImportedOrbit();
  v1014Close();
- status.textContent='Vollbild-Position übernommen.';
+ status.textContent='Vollbild-Position übernommen – Ausgabe entspricht dem 4:3-Rahmen.';
 };
 
 // On mobile, uploaded photos now open directly in fullscreen.

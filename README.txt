@@ -1,16 +1,19 @@
-Tamburi AR v10.15 – Fotoexport Fix
+Tamburi AR v10.16 – Positions-Fix Uploadfoto
 
-Behoben:
-- Fehler beim Speichern eines hochgeladenen Fotos/Screenshots.
-- Ursache: alter Zugriff auf einen inzwischen nicht mehr vorhandenen AR-Button.
-- Export wurde zusätzlich komplett auf eine feste Ausgabe umgestellt.
+Problem:
+Die Position im Vollbild-Uploadmodus wurde bisher relativ zum gesamten
+Smartphone-Bildschirm gespeichert. Der Export ist aber 1024x768 (4:3).
+Dadurch verschob sich der Kasten im fertigen Bild.
 
-Ausgabe:
-- Immer exakt 1024 x 768 Pixel.
-- Hintergrundbild bleibt proportional und wird nicht verzerrt.
-- Kasten wird mit der gewählten Position, Größe und Schwenkung gerendert.
-- Fehlermeldung zeigt jetzt den tatsächlichen Exportfehler an, falls noch etwas scheitert.
+Fix:
+- Im Vollbildmodus gibt es jetzt einen echten 4:3-Aufnahmerahmen.
+- Hintergrund + Kasten liegen beide exakt innerhalb dieses Rahmens.
+- Position wird relativ zu genau diesem Rahmen gespeichert.
+- Export verwendet dieselben normierten X/Y-Werte und dieselbe Skalierung.
+- Schwenkwinkel wird ebenfalls exakt aus der bestätigten Vollbildansicht übernommen.
+- Ausgabe bleibt immer 1024 x 768 Pixel.
 
-Vollbild-Uploadmodus aus v10.14 bleibt erhalten.
+Damit soll gelten:
+Was im 4:3-Rahmen vor dem Übernehmen zu sehen ist, ist auch die gespeicherte Position.
 
 Für GitHub nur index.html ersetzen.
