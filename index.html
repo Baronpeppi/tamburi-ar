@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.7</title>
+<title>Tamburi Standort AR v10.9</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -211,11 +211,29 @@ h1{font-size:20px;letter-spacing:-.25px}
 #v10VariantBadges button{cursor:pointer}
 
 #v102ShareAll{background:#eef4f8;border-color:#5c6873;font-weight:600}
+
+/* v10.8 Desktop: Foto bleibt Hintergrund, nur der Kasten wird bewegt */
+.desktopMode #viewer{
+  background:transparent!important;
+  --poster-color:transparent!important;
+}
+.desktopMode #stage{
+  background:#111;
+}
+.desktopMode #importedPhoto{
+  z-index:0;
+}
+.desktopMode #viewer{
+  z-index:2;
+}
+.desktopMode .badge{
+  z-index:3;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.7</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.9</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -258,7 +276,7 @@ h1{font-size:20px;letter-spacing:-.25px}
   <span class="heroIcon">🖼️</span>
   <span><strong>Foto / Screenshot</strong><small>Vorhandenes Bild bearbeiten</small></span>
   <span class="heroArrow">›</span>
-  <input id="photoUpload" type="file" accept="image/*,.heic,.heif" style="display:none">
+  <input id="photoUpload" type="file" accept="image/jpeg,image/png,image/webp,.heic,.heif" style="display:none">
 </label>
     <button class="action" id="stopPhotoBtn" style="display:none">Fotomodus beenden</button>
   </div>
@@ -305,7 +323,7 @@ h1{font-size:20px;letter-spacing:-.25px}
   <div class="label">Desktop-Werkzeuge</div>
   <div class="row">
     <label class="action" style="cursor:pointer">🖼️ Foto/Screenshot laden
-      <input id="desktopPhotoUpload" type="file" accept="image/*,.heic,.heif" style="display:none">
+      <input id="desktopPhotoUpload" type="file" accept="image/jpeg,image/png,image/webp,.heic,.heif" style="display:none">
     </label>
     <button class="action" id="resetDesktopBtn">Ansicht zurücksetzen</button>
     <button class="action capture" id="desktopSaveBtn">Bild speichern</button>
@@ -416,52 +434,61 @@ async function startImportedPhoto(file){
  if(!file) return;
  status.textContent='Bild wird geladen…';
 
- async function loadIntoImgFromUrl(url){
+ async function loadUrlIntoImage(url){
    return await new Promise((resolve,reject)=>{
-     const cleanup=()=>{
+     importedPhoto.onload=()=>{
        importedPhoto.onload=null;
        importedPhoto.onerror=null;
-     };
-     importedPhoto.onload=()=>{
-       cleanup();
-       resolve(url);
+       resolve();
      };
      importedPhoto.onerror=()=>{
-       cleanup();
-       reject(new Error('img decode failed'));
+       importedPhoto.onload=null;
+       importedPhoto.onerror=null;
+       reject(new Error('Bild konnte vom Browser nicht dekodiert werden'));
      };
      importedPhoto.src=url;
    });
  }
 
- async function fileToDataUrl(f){
-   return await new Promise((resolve,reject)=>{
-     const reader=new FileReader();
-     reader.onload=()=>resolve(reader.result);
-     reader.onerror=()=>reject(reader.error||new Error('FileReader failed'));
-     reader.readAsDataURL(f);
-   });
- }
+ async function normalizeRasterFile(f){
+   const name=(f.name||'').toLowerCase();
+   const ext=(name.split('.').pop()||'').toLowerCase();
+   const map={jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
+   const forcedType=map[ext] || f.type || 'application/octet-stream';
 
- async function decodeViaBitmap(f){
-   if(typeof createImageBitmap!=='function') throw new Error('createImageBitmap unavailable');
-   const bmp=await createImageBitmap(f);
-   const c=document.createElement('canvas');
-   c.width=bmp.width;
-   c.height=bmp.height;
-   const cx=c.getContext('2d');
-   cx.drawImage(bmp,0,0);
-   bmp.close?.();
-   return await new Promise((resolve,reject)=>{
-     c.toBlob(b=>{
-       if(!b) return reject(new Error('canvas conversion failed'));
-       resolve(b);
-     },'image/jpeg',0.95);
-   });
+   if(!f.size) throw new Error('Die ausgewählte Datei ist leer (0 Byte)');
+
+   // Read the actual bytes. This is more reliable on Android/Samsung Gallery,
+   // OneDrive-backed files and Windows files than passing the original File directly.
+   const bytes=await f.arrayBuffer();
+   const rawBlob=new Blob([bytes],{type:forcedType});
+
+   // Prefer createImageBitmap to normalize odd metadata/MIME combinations.
+   if(typeof createImageBitmap==='function'){
+     const bmp=await createImageBitmap(rawBlob);
+     const maxSide=4096;
+     let w=bmp.width,h=bmp.height;
+     const scale=Math.min(1,maxSide/Math.max(w,h));
+     w=Math.max(1,Math.round(w*scale));
+     h=Math.max(1,Math.round(h*scale));
+
+     const c=document.createElement('canvas');
+     c.width=w;c.height=h;
+     const cx=c.getContext('2d');
+     cx.drawImage(bmp,0,0,w,h);
+     bmp.close?.();
+
+     const normalized=await new Promise((resolve,reject)=>{
+       c.toBlob(b=>b?resolve(b):reject(new Error('Neukodierung fehlgeschlagen')),'image/jpeg',0.95);
+     });
+     return normalized;
+   }
+
+   return rawBlob;
  }
 
  try{
-   let sourceFile=file;
+   let sourceBlob=file;
    const name=(file.name||'').toLowerCase();
    const type=(file.type||'').toLowerCase();
    const isHeic=
@@ -469,58 +496,35 @@ async function startImportedPhoto(file){
      name.endsWith('.heic') || name.endsWith('.heif');
 
    if(isHeic){
-     if(typeof heic2any!=='function'){
-       throw new Error('HEIC-Konverter konnte nicht geladen werden');
-     }
-     status.textContent='HEIC-Foto wird für den Browser umgewandelt…';
+     if(typeof heic2any!=='function') throw new Error('HEIC-Konverter konnte nicht geladen werden');
+     status.textContent='HEIC-Foto wird umgewandelt…';
      let converted=await heic2any({blob:file,toType:'image/jpeg',quality:0.94});
      if(Array.isArray(converted)) converted=converted[0];
-     sourceFile=new File(
-       [converted],
-       (file.name||'Foto').replace(/\.(heic|heif)$/i,'.jpg'),
-       {type:'image/jpeg'}
-     );
+     sourceBlob=converted;
+   }else{
+     status.textContent='Foto wird für die App vorbereitet…';
+     sourceBlob=await normalizeRasterFile(file);
    }
 
-   let loadedUrl=null;
-   let objectUrl=null;
+   const newUrl=URL.createObjectURL(sourceBlob);
+   await loadUrlIntoImage(newUrl);
 
-   // Versuch 1: normaler Blob/ObjectURL-Weg
-   try{
-     objectUrl=URL.createObjectURL(sourceFile);
-     loadedUrl=await loadIntoImgFromUrl(objectUrl);
-   }catch(e1){
-     if(objectUrl){ URL.revokeObjectURL(objectUrl); objectUrl=null; }
-
-     // Versuch 2: FileReader/DataURL – hilft bei einigen Windows-/Browser-Sonderfällen
-     try{
-       status.textContent='Bild wird über alternativen JPG-Ladeweg geöffnet…';
-       const dataUrl=await fileToDataUrl(sourceFile);
-       loadedUrl=await loadIntoImgFromUrl(dataUrl);
-     }catch(e2){
-       // Versuch 3: createImageBitmap + Canvas neu enkodieren
-       status.textContent='JPG wird neu aufbereitet…';
-       const rebuilt=await decodeViaBitmap(sourceFile);
-       objectUrl=URL.createObjectURL(rebuilt);
-       loadedUrl=await loadIntoImgFromUrl(objectUrl);
-     }
-   }
-
-   // Nur ObjectURLs müssen später freigegeben werden.
    if(importedObjectURL && importedObjectURL.startsWith('blob:')){
      URL.revokeObjectURL(importedObjectURL);
    }
-   importedObjectURL = (typeof loadedUrl==='string' && loadedUrl.startsWith('blob:')) ? loadedUrl : null;
+   importedObjectURL=newUrl;
 
    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
    camera.style.display='none';
    importedPhoto.style.display='block';
+   importedPhoto.style.transform='none';
    viewer.classList.remove('normalMode');
    viewer.removeAttribute('environment-image');
    importedPhotoMode=true;
    photoMode=true;
 
    if(appMode==='desktop'){
+     document.getElementById('stage').classList.add('desktopPhotoLoaded');
      photoControls.style.display='none';
      photoModeBtn.style.display='none';
      stopPhotoBtn.style.display='none';
@@ -538,7 +542,8 @@ async function startImportedPhoto(file){
  }catch(e){
    console.error('Bildimport fehlgeschlagen:',e);
    const ext=(file.name||'').split('.').pop()?.toUpperCase()||'unbekannt';
-   status.textContent=`Bild konnte nicht geladen werden (${ext}). Bitte JPG, PNG, WebP oder HEIC/HEIF verwenden.`;
+   const sizeText=file.size ? `${(file.size/1024/1024).toFixed(1)} MB` : '0 Byte';
+   status.textContent=`Bild konnte nicht geladen werden (${ext}, ${sizeText}). ${e.message||''}`;
  }
 }
 photoUpload.onchange=e=>startImportedPhoto(e.target.files&&e.target.files[0]);
@@ -564,6 +569,7 @@ function setMode(mode){
     status.textContent='Desktopmodus aktiv.';
     applyDesktopTransform();
   } else {
+    document.getElementById('stage').classList.remove('desktopPhotoLoaded');
     viewer.style.transform='';
     viewer.style.transformOrigin='';
     status.textContent='Mobilmodus aktiv.';
@@ -611,7 +617,9 @@ stageEl.addEventListener('wheel',e=>{
 },{passive:false});
 
 resetDesktopBtn.onclick=()=>{
-  desktopX=0;desktopY=0;desktopS=1;desktopR=0;applyDesktopTransform();
+  desktopX=0;desktopY=0;desktopS=1;desktopR=0;
+  applyDesktopTransform();
+  status.textContent='Kasten auf Startposition zurückgesetzt.';
 };
 
 desktopPhotoUpload.onchange=async e=>{
