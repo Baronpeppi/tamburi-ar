@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.11</title>
+<title>Tamburi Standort AR v10.12</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -246,11 +246,24 @@ h1{font-size:20px;letter-spacing:-.25px}
 #stage.mobilePhotoLoaded .badge{
   z-index:3;
 }
+
+/* v10.12 – Foto/Screenshot-Modus mobil */
+#stage.mobilePhotoLoaded .badge{display:none!important}
+#stage.mobilePhotoLoaded model-viewer::part(default-ar-button){display:none!important}
+#stage.mobilePhotoLoaded #viewer{
+  background:transparent!important;
+  --poster-color:transparent!important;
+  overflow:visible!important;
+}
+#stage.mobilePhotoLoaded{
+  overflow:hidden;
+  touch-action:none;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.11</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.12</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -308,7 +321,7 @@ h1{font-size:20px;letter-spacing:-.25px}
   <model-viewer id="viewer" class="normalMode"
     src="normal_1.glb"
     alt="Tamburi Paketkasten"
-    camera-controls touch-action="pan-y"
+    camera-controls interaction-prompt="none" touch-action="none"
     ar ar-modes="webxr scene-viewer"
     ar-scale="fixed"
     shadow-intensity="1" shadow-softness=".8"
@@ -320,9 +333,9 @@ h1{font-size:20px;letter-spacing:-.25px}
 
 <div id="photoControls">
   <div class="label">Fotomodus</div>
-  <div class="sliderrow"><span>Größe</span><input id="scale" type="range" min="30" max="180" value="100"><span id="scaleVal">100%</span></div>
-  <div class="sliderrow"><span>Links/Rechts</span><input id="posX" type="range" min="-40" max="40" value="0"><span id="xVal">0</span></div>
-  <div class="sliderrow"><span>Hoch/Runter</span><input id="posY" type="range" min="-40" max="40" value="8"><span id="yVal">8</span></div>
+  <div class="sliderrow"><span>Größe</span><input id="scale" type="range" min="15" max="220" value="100"><span id="scaleVal">100%</span></div>
+  <div class="sliderrow"><span>Links/Rechts</span><input id="posX" type="range" min="-80" max="80" value="0"><span id="xVal">0</span></div>
+  <div class="sliderrow"><span>Hoch/Runter</span><input id="posY" type="range" min="-80" max="80" value="8"><span id="yVal">8</span></div>
   <div style="margin:10px 0 6px" class="label">Optionaler Fotoname</div>
   <div style="display:flex;gap:8px;align-items:stretch">
   <input id="photoName" placeholder="z. B. Hauptstraße 15, 2126 Ladendorf" style="flex:1;min-width:0">
@@ -552,6 +565,9 @@ async function startImportedPhoto(file){
    }else{
      document.getElementById('stage').classList.add('mobilePhotoLoaded');
      importedPhoto.style.transform='none';
+     viewer.removeAttribute('camera-controls');
+     viewer.setAttribute('interaction-prompt','none');
+     badge.style.display='none';
      photoControls.style.display='block';
      photoModeBtn.style.display='none';
      stopPhotoBtn.style.display='inline-block';
@@ -577,6 +593,8 @@ function setMode(mode){
 
   if(mode==='desktop'){
     document.getElementById('stage').classList.remove('mobilePhotoLoaded');
+    viewer.setAttribute('camera-controls','');
+    badge.style.display='block';
     if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
     camera.style.display='none';
     photoControls.style.display='none';
@@ -744,6 +762,8 @@ function stopPhotoMode(){
  camera.style.display='none';
  importedPhoto.style.display='none';
  importedPhotoMode=false;
+ viewer.setAttribute('camera-controls','');
+ badge.style.display='block';
  document.getElementById('stage').classList.remove('mobilePhotoLoaded');
  document.getElementById('stage').classList.remove('desktopPhotoLoaded');
  viewer.classList.add('normalMode');
@@ -760,6 +780,19 @@ photoModeBtn.onclick=startPhotoMode;
 stopPhotoBtn.onclick=stopPhotoMode;
 
 const scale=document.getElementById('scale'), posX=document.getElementById('posX'), posY=document.getElementById('posY');
+
+let importedTouchState=null;
+
+function importedScaleValue(){
+  return Math.max(0.15, Math.min(2.20, Number(scale.value)/100));
+}
+
+function setImportedScale(v){
+  v=Math.max(0.15, Math.min(2.20, v));
+  scale.value=Math.round(v*100);
+  applyTransform();
+}
+
 function applyTransform(){
  const s=Number(scale.value)/100, x=Number(posX.value), y=Number(posY.value);
  viewer.style.transform=`translate(${x}%, ${y}%) scale(${s})`;
@@ -768,6 +801,78 @@ function applyTransform(){
  document.getElementById('yVal').textContent=y;
 }
 [scale,posX,posY].forEach(el=>el.oninput=applyTransform);
+
+
+const importedStage=document.getElementById('stage');
+
+function touchDistance(t1,t2){
+  return Math.hypot(t1.clientX-t2.clientX,t1.clientY-t2.clientY);
+}
+function touchMid(t1,t2){
+  return {x:(t1.clientX+t2.clientX)/2,y:(t1.clientY+t2.clientY)/2};
+}
+
+importedStage.addEventListener('touchstart',e=>{
+  if(!importedPhotoMode || appMode==='desktop') return;
+  if(e.target.closest('button,input,label')) return;
+  e.preventDefault();
+
+  const x=Number(posX.value), y=Number(posY.value), s=importedScaleValue();
+
+  if(e.touches.length===1){
+    importedTouchState={
+      type:'drag',
+      sx:e.touches[0].clientX, sy:e.touches[0].clientY,
+      x,y
+    };
+  }else if(e.touches.length>=2){
+    const m=touchMid(e.touches[0],e.touches[1]);
+    importedTouchState={
+      type:'pinch',
+      d:touchDistance(e.touches[0],e.touches[1]),
+      s,x,y,mx:m.x,my:m.y
+    };
+  }
+},{passive:false});
+
+importedStage.addEventListener('touchmove',e=>{
+  if(!importedPhotoMode || appMode==='desktop' || !importedTouchState) return;
+  e.preventDefault();
+
+  const rect=importedStage.getBoundingClientRect();
+
+  if(e.touches.length===1 && importedTouchState.type==='drag'){
+    const dx=(e.touches[0].clientX-importedTouchState.sx)/rect.width*100;
+    const dy=(e.touches[0].clientY-importedTouchState.sy)/rect.height*100;
+    posX.value=Math.max(-80,Math.min(80,importedTouchState.x+dx));
+    posY.value=Math.max(-80,Math.min(80,importedTouchState.y+dy));
+    applyTransform();
+  }else if(e.touches.length>=2){
+    if(importedTouchState.type!=='pinch'){
+      const m=touchMid(e.touches[0],e.touches[1]);
+      importedTouchState={
+        type:'pinch',
+        d:touchDistance(e.touches[0],e.touches[1]),
+        s:importedScaleValue(),
+        x:Number(posX.value),y:Number(posY.value),
+        mx:m.x,my:m.y
+      };
+    }
+    const ratio=touchDistance(e.touches[0],e.touches[1])/importedTouchState.d;
+    setImportedScale(importedTouchState.s*ratio);
+
+    const m=touchMid(e.touches[0],e.touches[1]);
+    const dx=(m.x-importedTouchState.mx)/rect.width*100;
+    const dy=(m.y-importedTouchState.my)/rect.height*100;
+    posX.value=Math.max(-80,Math.min(80,importedTouchState.x+dx));
+    posY.value=Math.max(-80,Math.min(80,importedTouchState.y+dy));
+    applyTransform();
+  }
+},{passive:false});
+
+importedStage.addEventListener('touchend',e=>{
+  if(!e.touches.length) importedTouchState=null;
+},{passive:false});
 
 function safeName(s){
  return (s||'Tamburi_Standort').trim()

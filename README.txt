@@ -1,15 +1,18 @@
-Tamburi AR v10.11 – Handy Hintergrund-Fix
+Tamburi AR v10.12 – Mobile Foto/Screenshot Bedienung
 
-Problem:
-Beim Hochladen eines Fotos am Smartphone lag der Kasten auf einer grauen
-model-viewer-Fläche, die mit verschoben/skaliert wurde.
-
-Fix:
-- Hochgeladenes Foto bleibt fest als Hintergrund.
-- Nur der 3D-Kasten wird bewegt/skaliert.
-- model-viewer ist im Upload-Modus transparent.
-- Der graue Vorschauhintergrund bleibt nur in der normalen 3D-Vorschau.
-- Desktop-Fix aus v10.8 bleibt erhalten.
-- Bildimport-Fix aus v10.10 bleibt erhalten.
+Geändert:
+- Grauer Viewer bleibt im Upload-Modus transparent.
+- Auswahl-Text/Badge über dem Kasten wird im Upload-Modus ausgeblendet.
+- model-viewer Bedien-/Hinweis-Symbol unten rechts wird entfernt.
+- Eigene Touchsteuerung für hochgeladene Fotos:
+  * 1 Finger = Kasten verschieben
+  * 2 Finger = Kasten größer/kleiner
+- Finger-Zoom nutzt jetzt denselben Größenbereich wie der Balken.
+- Mindestgröße auf 15 % erweitert.
+- Maximalgröße auf 220 % erweitert.
+- Positionierungsbereich ebenfalls erweitert.
+- Interne model-viewer Touchsteuerung wird im Upload-Modus deaktiviert,
+  damit der Kasten nicht mehr abgeschnitten oder unerwartet gezoomt wird.
+- Desktop- und Kamera-Funktionen bleiben erhalten.
 
 Für GitHub nur index.html ersetzen.
