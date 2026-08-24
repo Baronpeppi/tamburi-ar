@@ -1,13 +1,13 @@
-Tamburi AR v10.9 – Smartphone/PC Bildimport-Fix
+Tamburi AR v10.10 – Smartphone Foto-Upload Fix
 
-Änderungen:
-- Gemeinsamer robuster Bildimport für Smartphone und Desktop.
-- JPG/JPEG/PNG/WebP werden zuerst als echte Dateibytes gelesen.
-- MIME-Typ wird anhand der Dateiendung korrigiert.
-- Bild wird über createImageBitmap dekodiert und als sauberes JPG neu aufgebaut.
-- Dadurch robuster bei Samsung Gallery, Android-Dateiauswahl, OneDrive-Dateien und Windows-Dateien.
-- HEIC/HEIF-Unterstützung bleibt erhalten.
-- Fehlermeldung zeigt jetzt zusätzlich Dateityp und Dateigröße.
-- Desktop-Hintergrund-Fix aus v10.8 bleibt erhalten.
+Ursache gefunden:
+Der Bildimport selbst funktionierte bereits. Danach griff die App noch auf den
+alten, inzwischen entfernten DOM-Button #arButton zu. Dadurch entstand:
+"Cannot read properties of null (reading 'style')"
+
+Fix:
+- Zugriff auf den alten #arButton abgesichert.
+- Foto-Upload kann danach normal in den Positionierungsmodus wechseln.
+- Desktop-/Varianten-/Kamera-Funktionen bleiben unverändert.
 
 Für GitHub nur index.html ersetzen.

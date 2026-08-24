@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.9</title>
+<title>Tamburi Standort AR v10.10</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -233,7 +233,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.9</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.10</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -528,14 +528,14 @@ async function startImportedPhoto(file){
      photoControls.style.display='none';
      photoModeBtn.style.display='none';
      stopPhotoBtn.style.display='none';
-     document.getElementById('arButton').style.display='none';
+     document.getElementById('arButton')?.style && (document.getElementById('arButton').style.display='none');
      applyDesktopTransform();
      status.textContent=`Desktopfoto geladen${isHeic?' (HEIC → JPG)':''} – Modell mit der Maus positionieren.`;
    }else{
      photoControls.style.display='block';
      photoModeBtn.style.display='none';
      stopPhotoBtn.style.display='inline-block';
-     document.getElementById('arButton').style.display='none';
+     document.getElementById('arButton')?.style && (document.getElementById('arButton').style.display='none');
      applyTransform();
      status.textContent=`Foto/Screenshot geladen${isHeic?' (HEIC → JPG)':''} – Kasten positionieren.`;
    }
@@ -560,7 +560,7 @@ function setMode(mode){
     camera.style.display='none';
     photoControls.style.display='none';
     photoMode=false;
-    document.getElementById('arButton').style.display='none';
+    document.getElementById('arButton')?.style && (document.getElementById('arButton').style.display='none');
     if(!importedPhotoMode){
       importedPhoto.style.display='none';
       viewer.classList.add('normalMode');
@@ -708,7 +708,7 @@ async function startPhotoMode(){
    photoControls.style.display='block';
    photoModeBtn.style.display='none';
    stopPhotoBtn.style.display='inline-block';
-   document.getElementById('arButton').style.display='none';
+   document.getElementById('arButton')?.style && (document.getElementById('arButton').style.display='none');
    photoMode=true;
    status.textContent='Fotomodus aktiv – Kamera läuft.';
    applyTransform();
