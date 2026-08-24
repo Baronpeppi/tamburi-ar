@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.10</title>
+<title>Tamburi Standort AR v10.11</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -229,11 +229,28 @@ h1{font-size:20px;letter-spacing:-.25px}
 .desktopMode .badge{
   z-index:3;
 }
+
+/* v10.11: hochgeladenes Foto bleibt Hintergrund, nur der Kasten wird bewegt */
+#stage.mobilePhotoLoaded{
+  background:#111!important;
+}
+#stage.mobilePhotoLoaded #importedPhoto{
+  z-index:0;
+  transform:none!important;
+}
+#stage.mobilePhotoLoaded #viewer{
+  z-index:2;
+  background:transparent!important;
+  --poster-color:transparent!important;
+}
+#stage.mobilePhotoLoaded .badge{
+  z-index:3;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.10</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.11</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -524,6 +541,7 @@ async function startImportedPhoto(file){
    photoMode=true;
 
    if(appMode==='desktop'){
+     document.getElementById('stage').classList.remove('mobilePhotoLoaded');
      document.getElementById('stage').classList.add('desktopPhotoLoaded');
      photoControls.style.display='none';
      photoModeBtn.style.display='none';
@@ -532,6 +550,8 @@ async function startImportedPhoto(file){
      applyDesktopTransform();
      status.textContent=`Desktopfoto geladen${isHeic?' (HEIC → JPG)':''} – Modell mit der Maus positionieren.`;
    }else{
+     document.getElementById('stage').classList.add('mobilePhotoLoaded');
+     importedPhoto.style.transform='none';
      photoControls.style.display='block';
      photoModeBtn.style.display='none';
      stopPhotoBtn.style.display='inline-block';
@@ -556,6 +576,7 @@ function setMode(mode){
   desktopModeBtn.classList.toggle('active', mode==='desktop');
 
   if(mode==='desktop'){
+    document.getElementById('stage').classList.remove('mobilePhotoLoaded');
     if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
     camera.style.display='none';
     photoControls.style.display='none';
@@ -570,6 +591,7 @@ function setMode(mode){
     applyDesktopTransform();
   } else {
     document.getElementById('stage').classList.remove('desktopPhotoLoaded');
+    if(importedPhotoMode) document.getElementById('stage').classList.add('mobilePhotoLoaded');
     viewer.style.transform='';
     viewer.style.transformOrigin='';
     status.textContent='Mobilmodus aktiv.';
@@ -722,6 +744,8 @@ function stopPhotoMode(){
  camera.style.display='none';
  importedPhoto.style.display='none';
  importedPhotoMode=false;
+ document.getElementById('stage').classList.remove('mobilePhotoLoaded');
+ document.getElementById('stage').classList.remove('desktopPhotoLoaded');
  viewer.classList.add('normalMode');
  photoControls.style.display='none';
  photoModeBtn.style.display='inline-block';
