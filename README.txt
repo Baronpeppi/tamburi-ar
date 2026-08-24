@@ -1,9 +1,10 @@
-Tamburi AR v10.25 – Querformat Info-Balken Fix
+Tamburi AR v10.26
 
-Korrektur:
-- In v10.24 wurde nur der Text im Hinweis angesprochen.
-- Die App setzt diesen Text später per JavaScript neu, dadurch erschien der Balken wieder.
-- In v10.25 wird im Querformat der komplette Container #v1014Hint ausgeblendet.
+Kamera-Querformat:
+- Hinweis „Bewegen: 1 Finger verschieben · 2 Finger skalieren“ wird jetzt direkt am richtigen Kamera-Element (#v9Hint) vollständig ausgeblendet.
+- Der weiße 4:3-Aufnahmerahmen wird auf die maximal mögliche Displayfläche erweitert.
+- Das Seitenverhältnis bleibt exakt 4:3.
+- Speicherung bleibt exakt 1024 × 768 px.
+- Sonstige Funktionen aus v10.25 bleiben unverändert.
 
-Hochformat bleibt unverändert.
 Für GitHub nur index.html ersetzen.

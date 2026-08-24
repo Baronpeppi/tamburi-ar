@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.25</title>
+<title>Tamburi Standort AR v10.26</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -405,11 +405,27 @@ body:not(.desktopMode) #stage.mobilePhotoLoaded #viewer{
     display:none!important;
   }
 }
+
+/* v10.26 – Kamera Querformat */
+@media (orientation: landscape){
+  /* Kamera-Hinweis vollständig entfernen */
+  #v9Camera #v9Hint{display:none!important;}
+
+  /* 4:3-Aufnahmefenster maximal vergrößern, ohne das 4:3-Format zu verändern.
+     Auf sehr breiten Handys darf der Rahmen die volle Höhe nutzen. */
+  #v9Camera #v98Frame{
+    width:min(100vw, calc(100vh * 4 / 3))!important;
+    height:min(100vh, calc(100vw * 3 / 4))!important;
+    aspect-ratio:4/3!important;
+    max-width:none!important;
+    max-height:none!important;
+  }
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.25</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.26</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
