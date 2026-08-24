@@ -1,11 +1,14 @@
-Tamburi AR v10.13 – Mobile Upload: Verschieben & Schwenken
+Tamburi AR v10.14 – Vollbildmodus für hochgeladene Fotos
 
-Neu bei Foto/Screenshot-Upload am Smartphone:
-- ✋ Verschieben: 1 Finger bewegt den Kasten.
-- ↻ Schwenken: 1 Finger dreht den Kasten horizontal/vertikal.
-- 2 Finger skalieren in beiden Modi.
-- ↺ Reset: Position, Größe und Blickwinkel zurück auf Start.
-- Größenbereich 15–220 % bleibt erhalten.
-- Graue Fläche, Badge und störendes Symbol bleiben entfernt.
+Neu:
+- Beim Foto/Screenshot-Upload am Smartphone öffnet sich jetzt automatisch ein Vollbildmodus.
+- Oben: Verschieben / Schwenken / Reset.
+- 1 Finger = je nach Modus verschieben oder schwenken.
+- 2 Finger = Größe.
+- Größenbereich 15–220 %.
+- Hochgeladenes Foto bleibt fest im Hintergrund.
+- Mit „✓ Übernehmen“ wird die Position in den normalen Foto-/Speicherworkflow übernommen.
+- „← Zurück“ schließt den Vollbildmodus ohne Übernahme.
 
+Desktop bleibt vorerst unverändert.
 Für GitHub nur index.html ersetzen.

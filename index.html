@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.13</title>
+<title>Tamburi Standort AR v10.14</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -263,11 +263,53 @@ h1{font-size:20px;letter-spacing:-.25px}
 #mobileUploadTools .choice{min-height:44px}
 #mobileUploadTools .choice.active{background:#26292d;color:#fff;border-color:#26292d}
 #stage.mobilePhotoLoaded #mobileUploadTools{display:block}
+
+/* v10.14 – Vollbildmodus für hochgeladene Fotos */
+#v1014UploadFullscreen{
+ display:none;position:fixed;inset:0;z-index:9998;background:#000;
+ overflow:hidden;touch-action:none;overscroll-behavior:none;
+}
+#v1014UploadFullscreen.active{display:block}
+#v1014UploadBg{
+ position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;z-index:0
+}
+#v1014UploadModel{
+ position:absolute;inset:0;width:100%;height:100%;z-index:2;background:transparent!important;
+ --poster-color:transparent!important;pointer-events:none;touch-action:none
+}
+#v1014Top{
+ position:absolute;left:0;right:0;top:0;z-index:5;display:flex;justify-content:space-between;
+ align-items:center;padding:max(10px,env(safe-area-inset-top)) 12px 10px;
+ background:linear-gradient(#000a,transparent)
+}
+.v1014Modes{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.v1014Btn{
+ border:0;border-radius:999px;background:#0009;color:#fff;padding:10px 13px;font-size:14px
+}
+.v1014Btn.active{background:#fff;color:#111}
+#v1014Hint{
+ position:absolute;left:50%;bottom:88px;transform:translateX(-50%);z-index:5;
+ color:#fff;background:#0009;padding:7px 11px;border-radius:999px;font-size:12px;white-space:nowrap
+}
+#v1014Bottom{
+ position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;
+ padding:12px 14px max(16px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#000a)
+}
+.v1014Confirm{
+ border:0;border-radius:999px;background:#1f9d55;color:#fff;padding:13px 22px;font-size:16px;font-weight:700
+}
+@media(orientation:landscape) and (max-width:1000px){
+ #v1014Top{padding:7px 10px}
+ .v1014Btn{padding:8px 10px;font-size:12px}
+ #v1014Hint{bottom:64px}
+ #v1014Bottom{padding:7px}
+ .v1014Confirm{padding:10px 18px}
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.13</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.14</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -1560,6 +1602,157 @@ if(katasterResultBtn) katasterResultBtn.onclick=openKatasterFromLocation;
 
 if(locationNameBtn) locationNameBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('photoName'));
 if(locationResultBtn) locationResultBtn.onclick=()=>fillFilenameFromLocation(document.getElementById('v9ResultName'));
+</script>
+
+
+<div id="v1014UploadFullscreen">
+  <img id="v1014UploadBg" alt="">
+  <model-viewer id="v1014UploadModel"
+    touch-action="none"
+    interaction-prompt="none"
+    interpolation-decay="0"
+    shadow-intensity="1"
+    shadow-softness=".8"
+    exposure="0.78">
+  </model-viewer>
+
+  <div id="v1014Top">
+    <button class="v1014Btn" id="v1014Back">← Zurück</button>
+    <div class="v1014Modes">
+      <button class="v1014Btn active" id="v1014Move">✋ Verschieben</button>
+      <button class="v1014Btn" id="v1014Rotate">↻ Schwenken</button>
+      <button class="v1014Btn" id="v1014Reset">↺ Reset</button>
+    </div>
+  </div>
+
+  <div id="v1014Hint">1 Finger: verschieben · 2 Finger: Größe</div>
+
+  <div id="v1014Bottom">
+    <button class="v1014Confirm" id="v1014Use">✓ Übernehmen</button>
+  </div>
+</div>
+
+
+<script>
+// ===== v10.14 fullscreen uploaded-photo positioning =====
+const v1014FS=document.getElementById('v1014UploadFullscreen');
+const v1014Bg=document.getElementById('v1014UploadBg');
+const v1014Model=document.getElementById('v1014UploadModel');
+const v1014Back=document.getElementById('v1014Back');
+const v1014Move=document.getElementById('v1014Move');
+const v1014Rotate=document.getElementById('v1014Rotate');
+const v1014Reset=document.getElementById('v1014Reset');
+const v1014Use=document.getElementById('v1014Use');
+const v1014Hint=document.getElementById('v1014Hint');
+
+let v1014Mode='move',v1014X=0,v1014Y=0,v1014S=1,v1014Yaw=0,v1014Pitch=75,v1014Gesture=null;
+
+function v1014Apply(){
+ v1014Model.style.transformOrigin='center center';
+ v1014Model.style.transform=`translate(${v1014X}px,${v1014Y}px) scale(${v1014S})`;
+}
+function v1014Orbit(){
+ v1014Pitch=Math.max(15,Math.min(165,v1014Pitch));
+ v1014Model.cameraOrbit=`${v1014Yaw}deg ${v1014Pitch}deg auto`;
+ if(typeof v1014Model.jumpCameraToGoal==='function')v1014Model.jumpCameraToGoal();
+}
+function v1014SetMode(mode){
+ v1014Mode=mode;
+ v1014Move.classList.toggle('active',mode==='move');
+ v1014Rotate.classList.toggle('active',mode==='rotate');
+ v1014Hint.textContent=mode==='move'
+   ? '1 Finger: verschieben · 2 Finger: Größe'
+   : '1 Finger: schwenken · 2 Finger: Größe';
+}
+function v1014ResetAll(){
+ v1014X=0;v1014Y=0;v1014S=1;v1014Yaw=0;v1014Pitch=75;
+ v1014Apply();v1014Orbit();v1014SetMode('move');
+}
+function v1014Dist(a,b){return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}
+function v1014Mid(a,b){return{x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2}}
+
+function v1014OpenFromImported(){
+ if(!importedPhotoMode || !importedPhoto.src)return;
+ v1014Bg.src=importedPhoto.src;
+ v1014Model.src=viewer.src;
+ v1014ResetAll();
+ v1014FS.classList.add('active');
+ document.body.style.overflow='hidden';
+}
+function v1014Close(){
+ v1014FS.classList.remove('active');
+ document.body.style.overflow='';
+}
+v1014Back.onclick=v1014Close;
+v1014Move.onclick=()=>v1014SetMode('move');
+v1014Rotate.onclick=()=>v1014SetMode('rotate');
+v1014Reset.onclick=v1014ResetAll;
+
+v1014FS.addEventListener('touchstart',e=>{
+ if(e.target.closest('button'))return;
+ e.preventDefault();
+ if(e.touches.length===1){
+  v1014Gesture={
+   type:v1014Mode==='rotate'?'rotate':'drag',
+   sx:e.touches[0].clientX,sy:e.touches[0].clientY,
+   x:v1014X,y:v1014Y,s:v1014S,yaw:v1014Yaw,pitch:v1014Pitch
+  };
+ }else if(e.touches.length>=2){
+  const m=v1014Mid(e.touches[0],e.touches[1]);
+  v1014Gesture={type:'pinch',d:v1014Dist(e.touches[0],e.touches[1]),s:v1014S,mx:m.x,my:m.y,x:v1014X,y:v1014Y};
+ }
+},{passive:false});
+
+v1014FS.addEventListener('touchmove',e=>{
+ if(!v1014Gesture)return;
+ e.preventDefault();
+
+ if(e.touches.length===1&&v1014Gesture.type==='drag'){
+  v1014X=v1014Gesture.x+(e.touches[0].clientX-v1014Gesture.sx);
+  v1014Y=v1014Gesture.y+(e.touches[0].clientY-v1014Gesture.sy);
+  v1014Apply();
+ }else if(e.touches.length===1&&v1014Gesture.type==='rotate'){
+  const dx=e.touches[0].clientX-v1014Gesture.sx;
+  const dy=e.touches[0].clientY-v1014Gesture.sy;
+  v1014Yaw=v1014Gesture.yaw-dx*.45;
+  v1014Pitch=v1014Gesture.pitch+dy*.35;
+  v1014Orbit();
+ }else if(e.touches.length>=2){
+  if(v1014Gesture.type!=='pinch'){
+   const m=v1014Mid(e.touches[0],e.touches[1]);
+   v1014Gesture={type:'pinch',d:v1014Dist(e.touches[0],e.touches[1]),s:v1014S,mx:m.x,my:m.y,x:v1014X,y:v1014Y};
+  }
+  const m=v1014Mid(e.touches[0],e.touches[1]);
+  v1014S=Math.max(.15,Math.min(2.2,v1014Gesture.s*v1014Dist(e.touches[0],e.touches[1])/v1014Gesture.d));
+  v1014X=v1014Gesture.x+(m.x-v1014Gesture.mx);
+  v1014Y=v1014Gesture.y+(m.y-v1014Gesture.my);
+  v1014Apply();
+ }
+},{passive:false});
+
+v1014FS.addEventListener('touchend',e=>{if(!e.touches.length)v1014Gesture=null},{passive:false});
+
+v1014Use.onclick=()=>{
+ // Transfer fullscreen placement/orbit back to the normal imported-photo state.
+ scale.value=Math.round(v1014S*100);
+ const rect=v1014FS.getBoundingClientRect();
+ posX.value=Math.max(-80,Math.min(80,(v1014X/rect.width)*100));
+ posY.value=Math.max(-80,Math.min(80,(v1014Y/rect.height)*100));
+ importedYaw=v1014Yaw;
+ importedPitch=v1014Pitch;
+ applyTransform();
+ applyImportedOrbit();
+ v1014Close();
+ status.textContent='Vollbild-Position übernommen.';
+};
+
+// On mobile, uploaded photos now open directly in fullscreen.
+const oldStartImportedPhoto=v1014OpenFromImported;
+const originalPhotoChange=photoUpload.onchange;
+photoUpload.onchange=async e=>{
+ await startImportedPhoto(e.target.files&&e.target.files[0]);
+ if(importedPhotoMode && appMode!=='desktop')v1014OpenFromImported();
+};
 </script>
 
 </body>
