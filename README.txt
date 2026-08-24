@@ -1,14 +1,17 @@
-Tamburi AR v10.19 – Vollbild-Steuerung wiederhergestellt
+Tamburi AR v10.20 – Desktop Position/Verzerrung Fix
 
-Ursache:
-- In v10.17/v10.18 wurde der alte Desktop-Drehungsregler entfernt.
-- Im JavaScript blieb aber noch eine alte Zeile `desktopRotate.step='1'`.
-- Dadurch entstand ein JavaScript-Fehler und spätere Steuerungslogik konnte nicht sauber initialisiert werden.
+Problem:
+Die Desktop-Vorschau hatte ein anderes Seitenverhältnis als der 1024x768-Export.
+Dadurch wurden X und Y mit unterschiedlichen Faktoren übertragen:
+- Kasten verschob sich
+- Kasten wurde im gespeicherten Bild verzerrt
 
 Fix:
-- Alte Referenz vollständig entfernt.
-- Vollbild-Steuerung für Verschieben, Schwenken und Zoomen wieder aktiv.
-- Desktop-Modi aus v10.18 bleiben erhalten.
-- Export-Fix aus v10.18 bleibt erhalten.
+- Sobald am Desktop ein Foto geladen ist, wird die Arbeitsfläche exakt 4:3.
+- Diese 4:3-Vorschau entspricht direkt dem späteren 1024x768-Bild.
+- Position wird mit einem einzigen einheitlichen Skalierungsfaktor übertragen.
+- Modell wird nicht mehr unterschiedlich in X und Y skaliert.
+- Größe, Position und 3D-Schwenkung bleiben erhalten.
+- Ausgabe weiterhin exakt 1024x768.
 
 Für GitHub nur index.html ersetzen.

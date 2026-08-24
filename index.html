@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.19</title>
+<title>Tamburi Standort AR v10.20</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -344,11 +344,27 @@ h1{font-size:20px;letter-spacing:-.25px}
 .desktopMode #viewer{
   pointer-events:none!important;
 }
+
+/* v10.20 – Desktop Vorschau = exakt derselbe 4:3-Bereich wie der Export */
+.desktopMode #stage.desktopPhotoLoaded{
+  width:100%;
+  height:auto!important;
+  min-height:0!important;
+  aspect-ratio:4/3;
+  background:#111;
+}
+.desktopMode #stage.desktopPhotoLoaded #importedPhoto{
+  object-fit:contain;
+}
+.desktopMode #stage.desktopPhotoLoaded #viewer{
+  width:100%;
+  height:100%;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.19</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.20</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -399,7 +415,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </div>
 
 <div id="stage">
-  <div id="desktopStageHint">Desktop: Kasten mit Maus ziehen · Mausrad = Größe · Alt + Mausrad = Drehen</div>
+  <div id="desktopStageHint">Desktop: 4:3-Vorschau = gespeichertes 1024×768-Bild</div>
   <div id="desktopHandle">↘</div>
   <img id="importedPhoto" alt="" draggable="false" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#111">
   <video id="camera" autoplay playsinline muted></video>
@@ -813,9 +829,11 @@ desktopPhotoUpload.onchange=async e=>{
   if(!file) return;
   await startImportedPhoto(file);
   setMode('desktop');
+  document.getElementById('stage').classList.add('desktopPhotoLoaded');
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
   desktopX=0;desktopY=0;desktopS=1;desktopYaw=0;desktopPitch=75;
   applyDesktopTransform();applyDesktopOrbit();setDesktopInteractionMode('move');
-  status.textContent='Desktopfoto geladen – Verschieben oder Schwenken wählen.';
+  status.textContent='Desktopfoto geladen – 4:3-Vorschau entspricht dem späteren 1024×768-Bild.';
 };
 
 async function saveDesktopImage(){
@@ -841,7 +859,7 @@ async function saveDesktopImage(){
     ctx.fillStyle='#111';
     ctx.fillRect(0,0,W,H);
 
-    // Hintergrund genauso wie in der Vorschau: contain-fit, aber auf 1024x768 skaliert.
+    // Hintergrund exakt wie in der 4:3-Desktopvorschau.
     const iw=importedPhoto.naturalWidth;
     const ih=importedPhoto.naturalHeight;
     if(!iw || !ih) throw new Error('Foto hat keine gültige Größe');
@@ -851,50 +869,41 @@ async function saveDesktopImage(){
     const bgH=ih*bgFit;
     ctx.drawImage(importedPhoto,(W-bgW)/2,(H-bgH)/2,bgW,bgH);
 
-    // Aktuellen 3D-Schwenkwinkel verwenden.
+    // Aktuellen echten 3D-Schwenkwinkel rendern.
     applyDesktopOrbit();
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
     const oldTransform=viewer.style.transform;
     const oldOrigin=viewer.style.transformOrigin;
     const oldBadge=badge.style.display;
+
     badge.style.display='none';
     viewer.style.transform='none';
     viewer.style.transformOrigin='center center';
 
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-    const blob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
+    const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
 
     viewer.style.transform=oldTransform;
     viewer.style.transformOrigin=oldOrigin;
     badge.style.display=oldBadge;
 
-    const bmp=await createImageBitmap(blob);
-    const bmpAR=bmp.width/bmp.height;
+    const bmp=await createImageBitmap(modelBlob);
 
-    // Modelgröße aus der sichtbaren Stage auf 1024x768 übertragen.
-    const mapX=W/stageW;
-    const mapY=H/stageH;
+    // Die Vorschau ist exakt 4:3. Daher nur EIN einheitlicher Maßstab –
+    // keine getrennte X-/Y-Skalierung und somit keine Verzerrung.
+    const map=W/stageW;
 
-    let previewH=stageH*desktopS;
-    let previewW=previewH*bmpAR;
-    if(previewW>stageW*desktopS){
-      previewW=stageW*desktopS;
-      previewH=previewW/bmpAR;
-    }
+    const drawW=W*desktopS;
+    const drawH=H*desktopS;
 
-    const drawW=previewW*mapX;
-    const drawH=previewH*mapY;
-
-    // DesktopX/Y sind Pixel in der Vorschau -> proportional auf Export abbilden.
-    const cx=W/2 + desktopX*mapX;
-    const cy=H/2 + desktopY*mapY;
+    const cx=W/2 + desktopX*map;
+    const cy=H/2 + desktopY*map;
 
     ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
     bmp.close?.();
 
     const name=safeName(document.getElementById('photoName').value||'Tamburi_Desktop');
-
     const outBlob=await new Promise((resolve,reject)=>{
       canvas.toBlob(b=>b?resolve(b):reject(new Error('Kein JPEG erzeugt')),'image/jpeg',.95);
     });
