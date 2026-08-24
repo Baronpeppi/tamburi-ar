@@ -1,9 +1,9 @@
-Tamburi AR v10.24
+Tamburi AR v10.25 – Querformat Info-Balken Fix
 
-Änderung:
-- Der Hinweis „1 Finger: verschieben · 2 Finger: Größe“ wird im Querformat ausgeblendet,
-  damit er den Kasten bzw. die Arbeitsfläche nicht verdeckt.
-- Im Hochformat bleibt der Hinweis erhalten.
-- Alle Funktionen aus v10.23 bleiben unverändert.
+Korrektur:
+- In v10.24 wurde nur der Text im Hinweis angesprochen.
+- Die App setzt diesen Text später per JavaScript neu, dadurch erschien der Balken wieder.
+- In v10.25 wird im Querformat der komplette Container #v1014Hint ausgeblendet.
 
+Hochformat bleibt unverändert.
 Für GitHub nur index.html ersetzen.
