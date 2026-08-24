@@ -1,10 +1,11 @@
-Tamburi AR v10.5
+Tamburi AR v10.6 – Desktop Foto-Upload Fix
 
 Geändert:
-- Button „Alle Varianten auf Handy speichern“ entfernt/versteckt.
-- Keine ZIP-Datei mehr.
-- „Aktuelle Variante speichern“ bleibt erhalten.
-- „Alle Varianten teilen“ bleibt erhalten und funktioniert weiterhin für OneDrive.
-- Varianten-Endkontrolle V1/V2/V3 bleibt unverändert.
+- Desktop-Upload von Fotos/Screenshots robuster gemacht.
+- JPG, PNG und WebP werden normal geladen.
+- HEIC/HEIF (häufig bei Smartphone-Fotos) werden direkt im Browser lokal in JPG umgewandelt.
+- Alte Bild-URL wird erst nach erfolgreichem Laden des neuen Bildes freigegeben.
+- Desktopmodus verwendet nach dem Import direkt die Maussteuerung.
+- Mobilfunktionen, Varianten, Kamera, Reset, Standort, Kataster und OneDrive/Teilen bleiben unverändert.
 
 Für GitHub nur index.html ersetzen.

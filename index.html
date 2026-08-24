@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.5</title>
+<title>Tamburi Standort AR v10.6</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -214,7 +215,7 @@ h1{font-size:20px;letter-spacing:-.25px}
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.5</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.6</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -257,7 +258,7 @@ h1{font-size:20px;letter-spacing:-.25px}
   <span class="heroIcon">🖼️</span>
   <span><strong>Foto / Screenshot</strong><small>Vorhandenes Bild bearbeiten</small></span>
   <span class="heroArrow">›</span>
-  <input id="photoUpload" type="file" accept="image/*" style="display:none">
+  <input id="photoUpload" type="file" accept="image/*,.heic,.heif" style="display:none">
 </label>
     <button class="action" id="stopPhotoBtn" style="display:none">Fotomodus beenden</button>
   </div>
@@ -304,7 +305,7 @@ h1{font-size:20px;letter-spacing:-.25px}
   <div class="label">Desktop-Werkzeuge</div>
   <div class="row">
     <label class="action" style="cursor:pointer">🖼️ Foto/Screenshot laden
-      <input id="desktopPhotoUpload" type="file" accept="image/*" style="display:none">
+      <input id="desktopPhotoUpload" type="file" accept="image/*,.heic,.heif" style="display:none">
     </label>
     <button class="action" id="resetDesktopBtn">Ansicht zurücksetzen</button>
     <button class="action capture" id="desktopSaveBtn">Bild speichern</button>
@@ -413,24 +414,73 @@ document.querySelectorAll('[data-plates]').forEach(b=>b.onclick=()=>{
 
 async function startImportedPhoto(file){
  if(!file) return;
+ status.textContent='Bild wird geladen…';
+
  try{
+   let sourceFile=file;
+   const name=(file.name||'').toLowerCase();
+   const type=(file.type||'').toLowerCase();
+   const isHeic=
+     type.includes('heic') || type.includes('heif') ||
+     name.endsWith('.heic') || name.endsWith('.heif');
+
+   // Chrome/Edge on Windows cannot reliably decode HEIC/HEIF.
+   // Convert locally in the browser to JPEG before displaying it.
+   if(isHeic){
+     if(typeof heic2any!=='function'){
+       throw new Error('HEIC-Konverter konnte nicht geladen werden');
+     }
+     status.textContent='HEIC-Foto wird für den Browser umgewandelt…';
+     let converted=await heic2any({blob:file,toType:'image/jpeg',quality:0.94});
+     if(Array.isArray(converted)) converted=converted[0];
+     sourceFile=new File(
+       [converted],
+       (file.name||'Foto').replace(/\.(heic|heif)$/i,'.jpg'),
+       {type:'image/jpeg'}
+     );
+   }
+
+   const newURL=URL.createObjectURL(sourceFile);
+
+   // Load the new image first. Only revoke the previous URL after success.
+   await new Promise((resolve,reject)=>{
+     importedPhoto.onload=()=>resolve();
+     importedPhoto.onerror=()=>reject(new Error('Browser konnte dieses Bildformat nicht dekodieren'));
+     importedPhoto.src=newURL;
+   });
+
    if(importedObjectURL) URL.revokeObjectURL(importedObjectURL);
-   importedObjectURL=URL.createObjectURL(file);
-   importedPhoto.src=importedObjectURL;
-   await new Promise((ok,bad)=>{importedPhoto.onload=ok; importedPhoto.onerror=bad;});
+   importedObjectURL=newURL;
+
    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
    camera.style.display='none';
    importedPhoto.style.display='block';
    viewer.classList.remove('normalMode');
    viewer.removeAttribute('environment-image');
-   photoControls.style.display='block';
-   photoModeBtn.style.display='none';
-   stopPhotoBtn.style.display='inline-block';
-   document.getElementById('arButton').style.display='none';
-   importedPhotoMode=true; photoMode=true;
-   status.textContent='Foto/Screenshot geladen – Kasten positionieren.';
-   applyTransform();
- }catch(e){status.textContent='Bild konnte nicht geladen werden.';}
+   importedPhotoMode=true;
+   photoMode=true;
+
+   // Desktop uses its mouse workflow; mobile keeps the existing slider workflow.
+   if(appMode==='desktop'){
+     photoControls.style.display='none';
+     photoModeBtn.style.display='none';
+     stopPhotoBtn.style.display='none';
+     document.getElementById('arButton').style.display='none';
+     applyDesktopTransform();
+     status.textContent=`Desktopfoto geladen${isHeic?' (HEIC → JPG)':''} – Modell mit der Maus positionieren.`;
+   }else{
+     photoControls.style.display='block';
+     photoModeBtn.style.display='none';
+     stopPhotoBtn.style.display='inline-block';
+     document.getElementById('arButton').style.display='none';
+     applyTransform();
+     status.textContent=`Foto/Screenshot geladen${isHeic?' (HEIC → JPG)':''} – Kasten positionieren.`;
+   }
+ }catch(e){
+   console.error('Bildimport fehlgeschlagen:',e);
+   const ext=(file.name||'').split('.').pop()?.toUpperCase()||'unbekannt';
+   status.textContent=`Bild konnte nicht geladen werden (${ext}). Bitte JPG, PNG, WebP oder HEIC/HEIF verwenden.`;
+ }
 }
 photoUpload.onchange=e=>startImportedPhoto(e.target.files&&e.target.files[0]);
 
