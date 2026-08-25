@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.26</title>
+<title>Tamburi Standort AR v10.27</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -421,11 +421,52 @@ body:not(.desktopMode) #stage.mobilePhotoLoaded #viewer{
     max-height:none!important;
   }
 }
+
+/* v10.27 – längere Dateinamen besser sichtbar */
+#photoName,
+#desktopPhotoName,
+#v9ResultName{
+  font-size:16px !important;
+  min-height:52px !important;
+  padding:12px 14px !important;
+}
+
+/* Auf Smartphone: Dateiname bekommt eine eigene, breite Zeile.
+   Standort/Kataster bleiben darunter, damit lange Adressen sichtbar bleiben. */
+@media (max-width: 760px){
+  #photoName,
+  #v9ResultName{
+    flex:0 0 100% !important;
+    width:100% !important;
+  }
+
+  #photoName{
+    min-width:100% !important;
+  }
+
+  #photoName + #locationNameBtn,
+  #v9ResultName + #locationResultBtn{
+    margin-left:0 !important;
+  }
+
+  #photoControls > div:has(> #photoName),
+  #v9Result > div:has(> #v9ResultName){
+    flex-wrap:wrap !important;
+  }
+}
+
+/* Desktop: deutlich mehr Platz für den Dateinamen */
+@media (min-width: 761px){
+  #desktopPhotoName{
+    flex:1 1 680px !important;
+    min-width:520px !important;
+  }
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.26</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.27</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
