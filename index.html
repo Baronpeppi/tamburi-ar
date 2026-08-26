@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.27</title>
+<title>Tamburi Standort AR v10.28</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -462,11 +462,34 @@ body:not(.desktopMode) #stage.mobilePhotoLoaded #viewer{
     min-width:520px !important;
   }
 }
+
+/* v10.28 – Ohne-Kasten-Modus */
+body.noLockerMode #baseRow,
+body.noLockerMode #plateRow{
+  opacity:.38;
+  pointer-events:none;
+}
+body.noLockerMode #viewer,
+body.noLockerMode #v9Model,
+body.noLockerMode #v1014UploadModel{
+  visibility:hidden!important;
+}
+body.noLockerMode #v9MoveMode,
+body.noLockerMode #v9RotateMode,
+body.noLockerMode #v9Undo,
+body.noLockerMode #v1014Move,
+body.noLockerMode #v1014Rotate,
+body.noLockerMode #v1014Reset,
+body.noLockerMode #mobileUploadTools,
+body.noLockerMode #desktopModeControls,
+body.noLockerMode #desktopScale{
+  display:none!important;
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.27</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.28</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -481,6 +504,7 @@ body:not(.desktopMode) #stage.mobilePhotoLoaded #viewer{
 <div class="panel">
   <div class="label">1. Anzahl Kästen</div>
   <div class="row" id="countRow">
+    <button class="choice" data-count="0">📷 Ohne Kasten</button>
     <button class="choice active" data-count="1">1 Kasten</button>
     <button class="choice" data-count="2">2 Kästen</button>
     <button class="choice" data-count="3">3 Kästen</button>
@@ -665,6 +689,27 @@ function setActive(group, attr, val){
  document.querySelectorAll(group+' .choice').forEach(b=>b.classList.toggle('active',b.dataset[attr]===String(val)));
 }
 function update(){
+ const noLocker=state.count===0;
+ document.body.classList.toggle('noLockerMode',noLocker);
+
+ if(noLocker){
+   viewer.style.visibility='hidden';
+   badge.textContent='Ohne Kasten';
+   if(photoModeBtn){
+     const strong=photoModeBtn.querySelector('strong');
+     const small=photoModeBtn.querySelector('small');
+     if(strong) strong.textContent='Fotomodus';
+     if(small) small.textContent='Standortfoto ohne Kasten aufnehmen';
+   }
+   return;
+ }
+
+ viewer.style.visibility='visible';
+ if(photoModeBtn){
+   const small=photoModeBtn.querySelector('small');
+   if(small) small.textContent='Kamera öffnen & Kasten platzieren';
+ }
+
  if(state.base==='sockel' && state.plates!=='none'){
    state.plates='none'; setActive('#plateRow','plates','none');
  }
@@ -984,44 +1029,45 @@ async function saveDesktopImage(){
     const bgH=ih*bgFit;
     ctx.drawImage(importedPhoto,(W-bgW)/2,(H-bgH)/2,bgW,bgH);
 
-    // Aktuellen echten 3D-Schwenkwinkel rendern.
-    applyDesktopOrbit();
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    // Kasten nur rendern, wenn einer ausgewählt ist.
+    if(state.count!==0){
+      applyDesktopOrbit();
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
-    const oldTransform=viewer.style.transform;
-    const oldOrigin=viewer.style.transformOrigin;
-    const oldBadge=badge.style.display;
+      const oldTransform=viewer.style.transform;
+      const oldOrigin=viewer.style.transformOrigin;
+      const oldBadge=badge.style.display;
 
-    badge.style.display='none';
-    viewer.style.transform='none';
-    viewer.style.transformOrigin='center center';
+      badge.style.display='none';
+      viewer.style.visibility='visible';
+      viewer.style.transform='none';
+      viewer.style.transformOrigin='center center';
 
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-    const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
 
-    viewer.style.transform=oldTransform;
-    viewer.style.transformOrigin=oldOrigin;
-    badge.style.display=oldBadge;
+      viewer.style.transform=oldTransform;
+      viewer.style.transformOrigin=oldOrigin;
+      badge.style.display=oldBadge;
 
-    const bmp=await createImageBitmap(modelBlob);
+      const bmp=await createImageBitmap(modelBlob);
 
-    // Vorschau und Export sind beide 4:3.
-    // Modell bleibt proportional: Snapshot-Seitenverhältnis niemals verändern.
-    const map=W/stageW;
-    const bmpAR=bmp.width/bmp.height;
+      const map=W/stageW;
+      const bmpAR=bmp.width/bmp.height;
 
-    let drawH=H*desktopS;
-    let drawW=drawH*bmpAR;
-    if(drawW>W*desktopS){
-      drawW=W*desktopS;
-      drawH=drawW/bmpAR;
+      let drawH=H*desktopS;
+      let drawW=drawH*bmpAR;
+      if(drawW>W*desktopS){
+        drawW=W*desktopS;
+        drawH=drawW/bmpAR;
+      }
+
+      const cx=W/2 + desktopX*map;
+      const cy=H/2 + desktopY*map;
+
+      ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
+      bmp.close?.();
     }
-
-    const cx=W/2 + desktopX*map;
-    const cy=H/2 + desktopY*map;
-
-    ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
-    bmp.close?.();
 
     const name=safeName(desktopPhotoName.value||document.getElementById('photoName').value||'Tamburi_Desktop');
     const outBlob=await new Promise((resolve,reject)=>{
@@ -1266,59 +1312,59 @@ captureBtn.onclick=async()=>{
      ctx.drawImage(camera,sx,sy,sw,sh,0,0,W,H);
    }
 
-   // Für hochgeladene Fotos exakt den im 4:3-Vollbild bestätigten Blickwinkel verwenden.
-   if(importedPhotoMode && v1016AcceptedPlacement){
-     importedYaw=v1016AcceptedPlacement.yaw;
-     importedPitch=v1016AcceptedPlacement.pitch;
-     applyImportedOrbit();
+   // 2) Optionaler Kasten. Ohne-Kasten-Modus speichert nur das Standortfoto.
+   if(state.count!==0){
+     if(importedPhotoMode && v1016AcceptedPlacement){
+       importedYaw=v1016AcceptedPlacement.yaw;
+       importedPitch=v1016AcceptedPlacement.pitch;
+       applyImportedOrbit();
+       await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+     }
+
+     if(typeof viewer.toBlob!=='function'){
+       throw new Error('model-viewer toBlob nicht verfügbar');
+     }
+
+     const oldBadgeDisplay=badge.style.display;
+     const arBtn=document.getElementById('arButton');
+     const oldArDisplay=arBtn ? arBtn.style.display : null;
+     const oldTransform=viewer.style.transform;
+     const oldOrigin=viewer.style.transformOrigin;
+
+     badge.style.display='none';
+     if(arBtn) arBtn.style.display='none';
+     viewer.style.visibility='visible';
+     viewer.style.transform='none';
+     viewer.style.transformOrigin='center center';
+
      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+     const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
+
+     viewer.style.transform=oldTransform;
+     viewer.style.transformOrigin=oldOrigin;
+     badge.style.display=oldBadgeDisplay;
+     if(arBtn) arBtn.style.display=oldArDisplay;
+
+     const bmp=await createImageBitmap(modelBlob);
+
+     const accepted=(importedPhotoMode && v1016AcceptedPlacement) ? v1016AcceptedPlacement : null;
+     const s=accepted ? accepted.scale : Math.max(.15,Math.min(2.20,Number(scale.value)/100));
+     const xPct=accepted ? accepted.xNorm*100 : (Number(posX.value)||0);
+     const yPct=accepted ? accepted.yNorm*100 : (Number(posY.value)||0);
+
+     const bmpAR=bmp.width/bmp.height;
+     let drawH=H*s;
+     let drawW=drawH*bmpAR;
+     if(drawW>W*s){
+       drawW=W*s;
+       drawH=drawW/bmpAR;
+     }
+
+     const cx=W/2 + W*(xPct/100);
+     const cy=H/2 + H*(yPct/100);
+     ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
+     bmp.close?.();
    }
-
-   // 2) 3D-Modell sauber und transparent rendern.
-   if(typeof viewer.toBlob!=='function'){
-     throw new Error('model-viewer toBlob nicht verfügbar');
-   }
-
-   const oldBadgeDisplay=badge.style.display;
-   const arBtn=document.getElementById('arButton');
-   const oldArDisplay=arBtn ? arBtn.style.display : null;
-   const oldTransform=viewer.style.transform;
-   const oldOrigin=viewer.style.transformOrigin;
-
-   badge.style.display='none';
-   if(arBtn) arBtn.style.display='none';
-   viewer.style.transform='none';
-   viewer.style.transformOrigin='center center';
-
-   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
-
-   viewer.style.transform=oldTransform;
-   viewer.style.transformOrigin=oldOrigin;
-   badge.style.display=oldBadgeDisplay;
-   if(arBtn) arBtn.style.display=oldArDisplay;
-
-   const bmp=await createImageBitmap(modelBlob);
-
-   // 3) Position/Größe aus dem Upload-Modus auf die feste 4:3-Ausgabe übertragen.
-   const accepted=(importedPhotoMode && v1016AcceptedPlacement) ? v1016AcceptedPlacement : null;
-   const s=accepted ? accepted.scale : Math.max(.15,Math.min(2.20,Number(scale.value)/100));
-   const xPct=accepted ? accepted.xNorm*100 : (Number(posX.value)||0);
-   const yPct=accepted ? accepted.yNorm*100 : (Number(posY.value)||0);
-
-
-   const bmpAR=bmp.width/bmp.height;
-   let drawH=H*s;
-   let drawW=drawH*bmpAR;
-   if(drawW>W*s){
-     drawW=W*s;
-     drawH=drawW/bmpAR;
-   }
-
-   const cx=W/2 + W*(xPct/100);
-   const cy=H/2 + H*(yPct/100);
-   ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
-   bmp.close?.();
 
    const name=safeName(document.getElementById('photoName').value);
    const outBlob=await new Promise((resolve,reject)=>{
@@ -1426,7 +1472,14 @@ v9RotateMode.onclick=()=>v9SetMode('rotate');
 async function v9Start(){
  try{
   v9Stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
-  v9Video.srcObject=v9Stream; v9Model.src=viewer.src;
+  v9Video.srcObject=v9Stream;
+  if(state.count===0){
+    v9Model.removeAttribute('src');
+    v9Model.style.visibility='hidden';
+  }else{
+    v9Model.src=viewer.src;
+    v9Model.style.visibility='visible';
+  }
   v9X=0;v9Y=0;v9S=1;v9Yaw=0;v9Pitch=75;v9Apply();v9ApplyOrbit();v9SetMode('move');
   v98Review.classList.remove('active');
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
@@ -1524,26 +1577,28 @@ v9Shutter.onclick=async()=>{
   sy=Math.max(0,Math.min(vh-sh,sy));
   ctx.drawImage(v9Video,sx,sy,sw,sh,0,0,W,H);
 
-  // Render the model with the same orbit, then apply exactly the position
-  // and scale used inside the 4:3 frame.
-  const old=v9Model.style.transform;
-  v9Model.style.transform='none';
-  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-  const mb=await v9Model.toBlob({mimeType:'image/png',idealAspect:true});
-  v9Model.style.transform=old;
+  // Nur wenn ein Kasten gewählt ist, das 3D-Modell einblenden.
+  if(state.count!==0){
+    const old=v9Model.style.transform;
+    v9Model.style.transform='none';
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const mb=await v9Model.toBlob({mimeType:'image/png',idealAspect:true});
+    v9Model.style.transform=old;
 
-  const bmp=await createImageBitmap(mb);
-  const bar=bmp.width/bmp.height;
+    const bmp=await createImageBitmap(mb);
+    const bar=bmp.width/bmp.height;
 
-  let dh=H*v9S;
-  let dw=dh*bar;
-  if(dw>W*v9S){dw=W*v9S;dh=dw/bar;}
+    let dh=H*v9S;
+    let dw=dh*bar;
+    if(dw>W*v9S){dw=W*v9S;dh=dw/bar;}
 
-  const mapX=W/frameW;
-  const mapY=H/frameH;
-  const cx=W/2 + v9X*mapX;
-  const cy=H/2 + v9Y*mapY;
-  ctx.drawImage(bmp,cx-dw/2,cy-dh/2,dw,dh);
+    const mapX=W/frameW;
+    const mapY=H/frameH;
+    const cx=W/2 + v9X*mapX;
+    const cy=H/2 + v9Y*mapY;
+    ctx.drawImage(bmp,cx-dw/2,cy-dh/2,dw,dh);
+    bmp.close?.();
+  }
 
   v98PendingBlob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',.95));
   if(v98PendingUrl)URL.revokeObjectURL(v98PendingUrl);
@@ -1945,7 +2000,13 @@ function v1014OpenFromImported(){
  if(!importedPhotoMode || !importedPhoto.src)return;
  v1016AcceptedPlacement=null;
  v1014Bg.src=importedPhoto.src;
- v1014Model.src=viewer.src;
+ if(state.count===0){
+   v1014Model.removeAttribute('src');
+   v1014Model.style.visibility='hidden';
+ }else{
+   v1014Model.src=viewer.src;
+   v1014Model.style.visibility='visible';
+ }
  v1014ResetAll();
  v1014FS.classList.add('active');
  document.body.style.overflow='hidden';
@@ -2040,6 +2101,8 @@ photoUpload.onchange=async e=>{
  await startImportedPhoto(e.target.files&&e.target.files[0]);
  if(importedPhotoMode && appMode!=='desktop')v1014OpenFromImported();
 };
+
+update();
 </script>
 
 </body>
