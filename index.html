@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.30</title>
+<title>Tamburi Standort AR v10.31</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -489,7 +489,7 @@ body.noLockerMode #desktopScale{
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.30</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.31</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -685,16 +685,6 @@ let stream=null;
 let state={count:1,base:'normal',plates:'none'};
 let photoMode=false;
 
-const TAMBURI_CAMERA_DISTANCE='6.2m';
-const TAMBURI_FOV='50deg';
-function applyPhysicalViewerScale(mv,yaw=0,pitch=75){
-  if(!mv)return;
-  mv.setAttribute('field-of-view',TAMBURI_FOV);
-  mv.cameraOrbit=`${yaw}deg ${pitch}deg ${TAMBURI_CAMERA_DISTANCE}`;
-  if(typeof mv.jumpCameraToGoal==='function') mv.jumpCameraToGoal();
-}
-
-
 function setActive(group, attr, val){
  document.querySelectorAll(group+' .choice').forEach(b=>b.classList.toggle('active',b.dataset[attr]===String(val)));
 }
@@ -738,8 +728,6 @@ function update(){
    desc=`${state.count} ${state.count===1?'Kasten':'Kästen'} · Normal`;
  }
  viewer.src=src; badge.textContent=desc;
- viewer.setAttribute('field-of-view',TAMBURI_FOV);
- viewer.setAttribute('camera-orbit',`0deg 75deg ${TAMBURI_CAMERA_DISTANCE}`);
 }
 
 document.querySelectorAll('[data-count]').forEach(b=>b.onclick=()=>{
@@ -927,7 +915,7 @@ function applyDesktopTransform(){
 }
 function applyDesktopOrbit(){
   desktopPitch=Math.max(15,Math.min(165,desktopPitch));
-  viewer.cameraOrbit=`${desktopYaw}deg ${desktopPitch}deg ${TAMBURI_CAMERA_DISTANCE}`;
+  viewer.cameraOrbit=`${desktopYaw}deg ${desktopPitch}deg auto`;
   if(typeof viewer.jumpCameraToGoal==='function') viewer.jumpCameraToGoal();
 }
 function setDesktopInteractionMode(mode){
@@ -1159,7 +1147,7 @@ function setImportedTouchMode(mode){
 }
 function applyImportedOrbit(){
  importedPitch=Math.max(15,Math.min(165,importedPitch));
- viewer.cameraOrbit=`${importedYaw}deg ${importedPitch}deg ${TAMBURI_CAMERA_DISTANCE}`;
+ viewer.cameraOrbit=`${importedYaw}deg ${importedPitch}deg auto`;
  if(typeof viewer.jumpCameraToGoal==='function') viewer.jumpCameraToGoal();
 }
 function resetImportedPlacement(){
@@ -1468,7 +1456,7 @@ function v9SetMode(mode){
 function v9ApplyOrbit(){
  // Camera is fully locked unless our own user gesture changes these values.
  v9Pitch=Math.max(15,Math.min(165,v9Pitch));
- v9Model.cameraOrbit=`${v9Yaw}deg ${v9Pitch}deg ${TAMBURI_CAMERA_DISTANCE}`;
+ v9Model.cameraOrbit=`${v9Yaw}deg ${v9Pitch}deg auto`;
  // Prevent the tiny "floating" / settling movement caused by interpolation.
  if(typeof v9Model.jumpCameraToGoal==='function'){
    v9Model.jumpCameraToGoal();
@@ -1490,7 +1478,6 @@ async function v9Start(){
     v9Model.style.visibility='hidden';
   }else{
     v9Model.src=viewer.src;
-    v9Model.setAttribute('field-of-view',TAMBURI_FOV);
     v9Model.style.visibility='visible';
   }
   v9X=0;v9Y=0;v9S=1;v9Yaw=0;v9Pitch=75;v9Apply();v9ApplyOrbit();v9SetMode('move');
@@ -1991,7 +1978,7 @@ function v1014Apply(){
 }
 function v1014Orbit(){
  v1014Pitch=Math.max(15,Math.min(165,v1014Pitch));
- v1014Model.cameraOrbit=`${v1014Yaw}deg ${v1014Pitch}deg ${TAMBURI_CAMERA_DISTANCE}`;
+ v1014Model.cameraOrbit=`${v1014Yaw}deg ${v1014Pitch}deg auto`;
  if(typeof v1014Model.jumpCameraToGoal==='function')v1014Model.jumpCameraToGoal();
 }
 function v1014SetMode(mode){
@@ -2018,7 +2005,6 @@ function v1014OpenFromImported(){
    v1014Model.style.visibility='hidden';
  }else{
    v1014Model.src=viewer.src;
-   v1014Model.setAttribute('field-of-view',TAMBURI_FOV);
    v1014Model.style.visibility='visible';
  }
  v1014ResetAll();
@@ -2117,14 +2103,6 @@ photoUpload.onchange=async e=>{
 };
 
 update();
-
-viewer.addEventListener('load',()=>{
- if(state.count!==0){
-   viewer.setAttribute('field-of-view',TAMBURI_FOV);
-   viewer.cameraOrbit=`0deg 75deg ${TAMBURI_CAMERA_DISTANCE}`;
-   if(typeof viewer.jumpCameraToGoal==='function') viewer.jumpCameraToGoal();
- }
-});
 </script>
 
 </body>
