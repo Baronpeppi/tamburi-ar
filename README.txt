@@ -1,14 +1,15 @@
-Tamburi AR v10.28 – Option „Ohne Kasten“
+Tamburi AR v10.29 – Größenrelation 1/2/3 Kästen
 
-Neu:
-- Bei „Anzahl Kästen“ gibt es jetzt „📷 Ohne Kasten“.
-- Damit kann ein reines Standortfoto aufgenommen und benannt werden.
-- Kamera-Vollbild bleibt inklusive 4:3-Rahmen und Bestätigung (X / Haken).
-- Kein 3D-Kasten wird eingeblendet oder in das Foto gerendert.
-- Aufstellung und Betonplatten sind in diesem Modus deaktiviert.
-- Foto/Screenshot-Upload funktioniert ebenfalls ohne Kasten.
-- Desktopfoto kann ebenfalls ohne Kasten gespeichert werden.
-- Ergebnis bleibt 1024 x 768 px.
-- Dateiname, Standortbutton, Varianten-Workflow und Teilen bleiben erhalten.
+Änderung:
+- 1, 2 und 3 Kästen verwenden jetzt dieselbe feste virtuelle Kameradistanz (4,2 m).
+- Dadurch wird die reale Modellgröße als gemeinsame Referenz verwendet.
+- Alle Varianten haben damit optisch dieselbe 225-cm-Höhe.
+- Bei 2 und 3 Kästen kommt nur zusätzliche Breite hinzu.
+- Einheitliches Sichtfeld: 45°.
+- Gilt für normale Vorschau, Smartphone-Kamera, Foto/Screenshot-Upload und Desktop.
+- Benutzer-Zoom funktioniert weiterhin über die vorhandene Skalierung.
+
+Hinweis:
+Die 3-Kasten-Variante ist 3,20 m breit und passt bei 4,2 m Kameradistanz weiterhin in den 4:3-Aufnahmebereich.
 
 Für GitHub nur index.html ersetzen.
