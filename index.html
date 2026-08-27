@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.35</title>
+<title>Tamburi Standort AR v10.36</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -490,7 +490,7 @@ body.noLockerMode #desktopScale{
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.35</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.36</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -1049,7 +1049,12 @@ async function saveDesktopImage(){
       // Wichtig: nicht auf den Modellinhalt zuschneiden.
       // Wir brauchen exakt denselben 4:3-Viewport wie in der Desktop-Vorschau,
       // sonst verschiebt sich der Kasten beim Export.
-      const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:false});
+      // v10.36: Snapshot mit transparentem Hintergrund und exakt dem
+      // tatsächlichen Desktop-Viewer-Seitenverhältnis erzeugen.
+      const modelBlob=await viewer.toBlob({
+        mimeType:'image/png',
+        idealAspect:false
+      });
 
       viewer.style.transform=oldTransform;
       viewer.style.transformOrigin=oldOrigin;
@@ -1057,33 +1062,21 @@ async function saveDesktopImage(){
 
       const bmp=await createImageBitmap(modelBlob);
 
-      // v10.35:
-      // Den Viewer-Snapshot zuerst MITTIG auf exakt 4:3 beschneiden.
-      // Dadurch bleibt das Modell unverzerrt UND seine Position innerhalb
-      // des Viewports bleibt beim Schwenken erhalten.
-      const map=W/stageW;
-      const targetAR=W/H;
-      const bmpAR=bmp.width/bmp.height;
+      // Keine nachträgliche Beschneidung und keine Schwerpunkt-Neuberechnung.
+      // Der komplette gerenderte Frame wird 1:1 vom sichtbaren Stage-Rechteck
+      // auf 1024x768 abgebildet. Da stageW/stageH = 4:3, ist der Faktor in
+      // beiden Achsen identisch. Schwenken darf die Position daher nicht ändern.
+      const mapX=W/stageW;
+      const mapY=H/stageH;
+      const map=(mapX+mapY)/2;
 
-      let sx=0,sy=0,sw=bmp.width,sh=bmp.height;
-      if(bmpAR>targetAR){
-        sw=bmp.height*targetAR;
-        sx=(bmp.width-sw)/2;
-      }else if(bmpAR<targetAR){
-        sh=bmp.width/targetAR;
-        sy=(bmp.height-sh)/2;
-      }
-
-      const drawW=W*desktopS;
-      const drawH=H*desktopS;
+      const drawW=stageW*map*desktopS;
+      const drawH=stageH*map*desktopS;
       const cx=W/2 + desktopX*map;
       const cy=H/2 + desktopY*map;
 
-      ctx.drawImage(
-        bmp,
-        sx,sy,sw,sh,
-        cx-drawW/2,cy-drawH/2,drawW,drawH
-      );
+      ctx.drawImage(bmp,0,0,bmp.width,bmp.height,
+        cx-drawW/2,cy-drawH/2,drawW,drawH);
       bmp.close?.();
     }
 
