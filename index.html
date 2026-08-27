@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.36</title>
+<title>Tamburi Standort AR v10.37</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -1070,13 +1070,37 @@ async function saveDesktopImage(){
       const mapY=H/stageH;
       const map=(mapX+mapY)/2;
 
-      const drawW=stageW*map*desktopS;
-      const drawH=stageH*map*desktopS;
+      // v10.37: Desktop-Schwenk-ExportFix
+      // Das Snapshot-Bild darf beim Export NICHT auf ein anderes Seitenverhältnis
+      // gezwungen werden. Genau das konnte nach dem Schwenken zu einem sichtbaren
+      // Versatz bzw. einer leichten Verzerrung führen.
+      const stageAspect=stageW/stageH;
+      const bmpAspect=bmp.width/bmp.height;
+
+      let baseDrawW=W;
+      let baseDrawH=H;
+
+      // Falls model-viewer intern einen minimal abweichenden Snapshot liefert,
+      // proportional einpassen statt strecken.
+      if(Math.abs(bmpAspect-stageAspect) > 0.002){
+        if(bmpAspect > stageAspect){
+          baseDrawW=W;
+          baseDrawH=W/bmpAspect;
+        }else{
+          baseDrawH=H;
+          baseDrawW=H*bmpAspect;
+        }
+      }
+
+      const drawW=baseDrawW*desktopS;
+      const drawH=baseDrawH*desktopS;
       const cx=W/2 + desktopX*map;
       const cy=H/2 + desktopY*map;
 
-      ctx.drawImage(bmp,0,0,bmp.width,bmp.height,
-        cx-drawW/2,cy-drawH/2,drawW,drawH);
+      ctx.drawImage(
+        bmp,0,0,bmp.width,bmp.height,
+        cx-drawW/2,cy-drawH/2,drawW,drawH
+      );
       bmp.close?.();
     }
 
