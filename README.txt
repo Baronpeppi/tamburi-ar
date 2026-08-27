@@ -1,21 +1,11 @@
-Tamburi AR v10.31 – Rückkehr zur stabilen Basis v10.28
+Tamburi AR v10.33 – größere Desktop-Arbeitsfläche
 
-Basis:
-- Technischer Stand entspricht v10.28.
-- Die experimentellen Änderungen aus v10.29 und v10.30 zur festen Kameradistanz wurden vollständig verworfen.
-
-Enthalten bleiben:
-- Ohne-Kasten-Modus
-- Kamera-/Vollbildmodus
-- Verschieben / Schwenken / Reset
-- Foto-/Screenshot-Upload
-- Desktopmodus
-- 1024 x 768 Export
-- Dateiname / Standort
-- Varianten-Workflow
-- Kataster / Teilen
-
-Nächster Schritt:
-Größenrelation von 1 / 2 / 3 Kästen künftig gezielt korrigieren, ohne die globale Kameralogik zu verändern.
+Geändert:
+- Bearbeitungsbildschirm im Desktopmodus deutlich vergrößert.
+- Maximale Breite von 1100 px auf 1320 px erhöht.
+- Die Arbeitsfläche darf mehr von der verfügbaren Bildschirmhöhe nutzen.
+- Seitenverhältnis bleibt exakt 4:3.
+- Desktop-Positions-Fix aus v10.32 bleibt unverändert.
+- Export bleibt exakt 1024 x 768 px.
 
 Für GitHub nur index.html ersetzen.

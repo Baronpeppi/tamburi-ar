@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.31</title>
+<title>Tamburi Standort AR v10.33</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -347,7 +347,8 @@ h1{font-size:20px;letter-spacing:-.25px}
 
 /* v10.21 – Desktop 4:3-Arbeitsfläche kompakt und zentriert */
 .desktopMode #stage.desktopPhotoLoaded{
-  width:min(100%, 1100px, calc((100vh - 360px) * 4 / 3));
+  /* v10.33: größere Desktop-Arbeitsfläche, weiterhin exakt 4:3 */
+  width:min(100%, 1320px, calc((100vh - 250px) * 4 / 3));
   height:auto!important;
   min-height:0!important;
   aspect-ratio:4/3;
@@ -489,7 +490,7 @@ body.noLockerMode #desktopScale{
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.31</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.33</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -1044,7 +1045,11 @@ async function saveDesktopImage(){
       viewer.style.transformOrigin='center center';
 
       await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-      const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:true});
+
+      // Wichtig: nicht auf den Modellinhalt zuschneiden.
+      // Wir brauchen exakt denselben 4:3-Viewport wie in der Desktop-Vorschau,
+      // sonst verschiebt sich der Kasten beim Export.
+      const modelBlob=await viewer.toBlob({mimeType:'image/png',idealAspect:false});
 
       viewer.style.transform=oldTransform;
       viewer.style.transformOrigin=oldOrigin;
@@ -1052,16 +1057,12 @@ async function saveDesktopImage(){
 
       const bmp=await createImageBitmap(modelBlob);
 
+      // Vorschau und Export sind beide 4:3.
+      // Deshalb den kompletten Viewer-Viewport mit exakt derselben
+      // Verschiebung und Skalierung wie am Bildschirm übertragen.
       const map=W/stageW;
-      const bmpAR=bmp.width/bmp.height;
-
-      let drawH=H*desktopS;
-      let drawW=drawH*bmpAR;
-      if(drawW>W*desktopS){
-        drawW=W*desktopS;
-        drawH=drawW/bmpAR;
-      }
-
+      const drawW=W*desktopS;
+      const drawH=H*desktopS;
       const cx=W/2 + desktopX*map;
       const cy=H/2 + desktopY*map;
 
