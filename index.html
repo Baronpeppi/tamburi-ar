@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.33</title>
+<title>Tamburi Standort AR v10.34</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -490,7 +490,7 @@ body.noLockerMode #desktopScale{
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.33</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.34</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -1057,12 +1057,25 @@ async function saveDesktopImage(){
 
       const bmp=await createImageBitmap(modelBlob);
 
-      // Vorschau und Export sind beide 4:3.
-      // Deshalb den kompletten Viewer-Viewport mit exakt derselben
-      // Verschiebung und Skalierung wie am Bildschirm übertragen.
+      // WICHTIG: Snapshot niemals auf 4:3 "ziehen".
+      // Das würde den Kasten horizontal/vertikal verzerren.
+      // Stattdessen wird der komplette Viewer-Viewport proportional
+      // in die 1024x768-Ausgabe eingepasst und danach nur gleichmäßig skaliert.
       const map=W/stageW;
-      const drawW=W*desktopS;
-      const drawH=H*desktopS;
+      const targetAR=W/H;
+      const bmpAR=bmp.width/bmp.height;
+
+      let baseW,baseH;
+      if(bmpAR>=targetAR){
+        baseW=W;
+        baseH=W/bmpAR;
+      }else{
+        baseH=H;
+        baseW=H*bmpAR;
+      }
+
+      const drawW=baseW*desktopS;
+      const drawH=baseH*desktopS;
       const cx=W/2 + desktopX*map;
       const cy=H/2 + desktopY*map;
 
