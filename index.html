@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.34</title>
+<title>Tamburi Standort AR v10.35</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -490,7 +490,7 @@ body.noLockerMode #desktopScale{
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.34</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.35</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -1057,29 +1057,33 @@ async function saveDesktopImage(){
 
       const bmp=await createImageBitmap(modelBlob);
 
-      // WICHTIG: Snapshot niemals auf 4:3 "ziehen".
-      // Das würde den Kasten horizontal/vertikal verzerren.
-      // Stattdessen wird der komplette Viewer-Viewport proportional
-      // in die 1024x768-Ausgabe eingepasst und danach nur gleichmäßig skaliert.
+      // v10.35:
+      // Den Viewer-Snapshot zuerst MITTIG auf exakt 4:3 beschneiden.
+      // Dadurch bleibt das Modell unverzerrt UND seine Position innerhalb
+      // des Viewports bleibt beim Schwenken erhalten.
       const map=W/stageW;
       const targetAR=W/H;
       const bmpAR=bmp.width/bmp.height;
 
-      let baseW,baseH;
-      if(bmpAR>=targetAR){
-        baseW=W;
-        baseH=W/bmpAR;
-      }else{
-        baseH=H;
-        baseW=H*bmpAR;
+      let sx=0,sy=0,sw=bmp.width,sh=bmp.height;
+      if(bmpAR>targetAR){
+        sw=bmp.height*targetAR;
+        sx=(bmp.width-sw)/2;
+      }else if(bmpAR<targetAR){
+        sh=bmp.width/targetAR;
+        sy=(bmp.height-sh)/2;
       }
 
-      const drawW=baseW*desktopS;
-      const drawH=baseH*desktopS;
+      const drawW=W*desktopS;
+      const drawH=H*desktopS;
       const cx=W/2 + desktopX*map;
       const cy=H/2 + desktopY*map;
 
-      ctx.drawImage(bmp,cx-drawW/2,cy-drawH/2,drawW,drawH);
+      ctx.drawImage(
+        bmp,
+        sx,sy,sw,sh,
+        cx-drawW/2,cy-drawH/2,drawW,drawH
+      );
       bmp.close?.();
     }
 

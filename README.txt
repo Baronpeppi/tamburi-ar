@@ -1,15 +1,19 @@
-Tamburi AR v10.34 – Desktop Verzerrungs-Fix
+Tamburi AR v10.35 – Desktop Schwenk-Positions-Fix
 
 Problem:
-Nach Vergrößerung der Desktop-Arbeitsfläche wurde der 3D-Viewer-Snapshot beim Export
-auf 1024x768 gestreckt. Dadurch wirkte der Kasten im gespeicherten Bild breiter.
+Ohne Schwenken stimmte die Position im gespeicherten Bild.
+Nach dem Schwenken verschob sich der Kasten im Export.
+
+Ursache:
+Der 3D-Snapshot hatte intern ein anderes Seitenverhältnis als die 4:3-Arbeitsfläche.
+Beim proportionalen Einpassen änderte sich dadurch die Lage des sichtbaren Modells,
+besonders deutlich nach einer 3D-Schwenkung.
 
 Fix:
-- Snapshot wird nicht mehr auf ein fixes 4:3-Rechteck verzerrt.
-- Das native Seitenverhältnis des 3D-Snapshots bleibt erhalten.
-- Skalierung erfolgt nur noch gleichmäßig in X und Y.
-- Position aus der Desktop-Vorschau bleibt erhalten.
-- Große Desktop-Arbeitsfläche aus v10.33 bleibt bestehen.
-- Export weiterhin exakt 1024 x 768 px.
+- 3D-Snapshot wird vor dem Export mittig und unverzerrt auf exakt 4:3 beschnitten.
+- Danach werden Größe und X/Y-Position 1:1 auf 1024x768 übertragen.
+- Der Kasten bleibt auch nach dem Schwenken an derselben Stelle wie in der Vorschau.
+- Keine Verzerrung des Modells.
+- Große Desktop-Arbeitsfläche bleibt erhalten.
 
 Für GitHub nur index.html ersetzen.
