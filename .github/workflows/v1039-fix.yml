@@ -2,8 +2,10 @@ name: Apply Tamburi v10.39 desktop preview export fix
 
 on:
   push:
-    branches: [main]
-    paths: [.github/workflows/v1039-fix.yml]
+    branches:
+      - main
+    paths:
+      - .github/workflows/v1039-fix.yml
 
 permissions:
   contents: write
@@ -18,11 +20,17 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
-          s=s.replace('<title>Tamburi Standort AR v10.38</title>','<title>Tamburi Standort AR v10.39</title>',1)
-          s=s.replace('>v10.38</span></h1>','>v10.39</span></h1>',1)
-          old="""      // v10.38: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          replacements = [
+              ('<title>Tamburi Standort AR v10.38</title>', '<title>Tamburi Standort AR v10.39</title>'),
+              ('>v10.38</span></h1>', '>v10.39</span></h1>'),
+          ]
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit(f'Expected text not found: {old}')
+              s = s.replace(old, new, 1)
+          old = '''      // v10.38: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
       const drawW=W*desktopS;
       const drawH=H*desktopS;
       const cx=W/2 + desktopX*mapX;
@@ -31,10 +39,8 @@ jobs:
       ctx.drawImage(
         bmp,0,0,bmp.width,bmp.height,
         cx-drawW/2,cy-drawH/2,drawW,drawH
-      );"""
-          new="""      // v10.39: Die Exportposition wird aus dem tatsächlich sichtbaren
-      // Viewer-Rechteck der Desktop-Vorschau abgeleitet. Dadurch ist insbesondere
-      // die Y-Position auch bei stark verkleinertem Kasten identisch zur Vorschau.
+      );'''
+          new = '''      // v10.39: Exportposition direkt aus dem sichtbaren Viewer-Rechteck.
       const stageRect=stage.getBoundingClientRect();
       const viewerRect=viewer.getBoundingClientRect();
       const drawW=viewerRect.width*mapX;
@@ -45,12 +51,13 @@ jobs:
       ctx.drawImage(
         bmp,0,0,bmp.width,bmp.height,
         drawX,drawY,drawW,drawH
-      );"""
+      );'''
           if old not in s:
-              raise SystemExit('v10.38 export block not found')
-          s=s.replace(old,new,1)
-          p.write_text(s,encoding='utf-8')
-          Path('README.txt').write_text('Tamburi AR v10.39 – Desktop Preview = Export\n\n- Desktop-Export übernimmt das tatsächlich sichtbare Viewer-Rechteck aus der Vorschau.\n- Behebt insbesondere den vertikalen Versatz bei stark verkleinertem Kasten.\n- Keine pauschalen Positions-Korrekturfaktoren.\n- Andere Funktionen unverändert.\n',encoding='utf-8')
+              raise SystemExit('Expected v10.38 export block not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          readme = "Tamburi AR v10.39 – Desktop Preview = Export\n\nÄnderung:\n- Export übernimmt das tatsächlich sichtbare Viewer-Rechteck der Desktop-Vorschau.\n- Behebt den vertikalen Versatz bei stark verkleinertem Kasten.\n- Andere Funktionen bleiben unverändert.\n"
+          Path('README.txt').write_text(readme, encoding='utf-8')
           PY
       - name: Commit v10.39
         run: |
