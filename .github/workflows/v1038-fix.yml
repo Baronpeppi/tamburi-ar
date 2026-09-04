@@ -2,82 +2,42 @@ name: Apply Tamburi v10.38 desktop export fix
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - '.github/workflows/v1038-fix.yml'
+      - .github/workflows/v1038-fix.yml
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'github-actions[bot]' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Patch v10.38
-        shell: python
+      - name: Patch index.html
         run: |
+          python3 <<'PY'
           from pathlib import Path
 
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          s = s.replace('<title>Tamburi Standort AR v10.37</title>', '<title>Tamburi Standort AR v10.38</title>', 1)
-          s = s.replace('>v10.36</span></h1>', '>v10.38</span></h1>', 1)
+          replacements = [
+              ('<title>Tamburi Standort AR v10.37</title>', '<title>Tamburi Standort AR v10.38</title>'),
+              ('>v10.36</span></h1>', '>v10.38</span></h1>'),
+              ('      const drawW=baseDrawW*desktopS;', '      // v10.38: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.\n      const drawW=W*desktopS;'),
+              ('      const drawH=baseDrawH*desktopS;', '      const drawH=H*desktopS;'),
+              ('      const cx=W/2 + desktopX*map;', '      const cx=W/2 + desktopX*mapX;'),
+              ('      const cy=H/2 + desktopY*map;', '      const cy=H/2 + desktopY*mapY;'),
+          ]
 
-          old = '''      // Keine nachträgliche Beschneidung und keine Schwerpunkt-Neuberechnung.
-          // Der komplette gerenderte Frame wird 1:1 vom sichtbaren Stage-Rechteck
-          // auf 1024x768 abgebildet. Da stageW/stageH = 4:3, ist der Faktor in
-          // beiden Achsen identisch. Schwenken darf die Position daher nicht ändern.
-          const mapX=W/stageW;
-          const mapY=H/stageH;
-          const map=(mapX+mapY)/2;
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit(f'Expected text not found: {old}')
+              s = s.replace(old, new, 1)
 
-          // v10.37: Desktop-Schwenk-ExportFix
-          // Das Snapshot-Bild darf beim Export NICHT auf ein anderes Seitenverhältnis
-          // gezwungen werden. Genau das konnte nach dem Schwenken zu einem sichtbaren
-          // Versatz bzw. einer leichten Verzerrung führen.
-          const stageAspect=stageW/stageH;
-          const bmpAspect=bmp.width/bmp.height;
-
-          let baseDrawW=W;
-          let baseDrawH=H;
-
-          // Falls model-viewer intern einen minimal abweichenden Snapshot liefert,
-          // proportional einpassen statt strecken.
-          if(Math.abs(bmpAspect-stageAspect) > 0.002){
-            if(bmpAspect > stageAspect){
-              baseDrawW=W;
-              baseDrawH=W/bmpAspect;
-            }else{
-              baseDrawH=H;
-              baseDrawW=H*bmpAspect;
-            }
-          }
-
-          const drawW=baseDrawW*desktopS;
-          const drawH=baseDrawH*desktopS;
-          const cx=W/2 + desktopX*map;
-          const cy=H/2 + desktopY*map;
-'''
-
-          new = '''      // v10.38: Desktop Small-Scale Export Fix
-          // Vorschau und Export verwenden exakt dieselbe 4:3-Koordinatenbasis.
-          // Den vollständigen model-viewer-Viewport immer direkt auf 1024x768 abbilden;
-          // keine nachträgliche Seitenverhältnis-Korrektur des Snapshots.
-          const mapX=W/stageW;
-          const mapY=H/stageH;
-          const drawW=W*desktopS;
-          const drawH=H*desktopS;
-          const cx=W/2 + desktopX*mapX;
-          const cy=H/2 + desktopY*mapY;
-'''
-
-          if old not in s:
-              raise SystemExit('Expected v10.37 desktop export block not found; aborting without changes.')
-
-          s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
 
           Path('README.txt').write_text('''Tamburi AR v10.38 – Desktop Small-Scale Export Fix
@@ -86,10 +46,12 @@ jobs:
 - Behebt den Versatz des Kastens beim Speichern, wenn er in der Desktop-Vorschau stark verkleinert wurde.
 - Vorschau und Export verwenden dieselbe 4:3-Koordinatenbasis.
 - X- und Y-Verschiebung werden getrennt mit der tatsächlichen Stage-Breite bzw. -Höhe auf 1024 × 768 übertragen.
-- Der vollständige model-viewer-Snapshot wird ohne zusätzliche Seitenverhältnis-Korrektur skaliert.
+- Der model-viewer-Frame wird beim Export mit exakt derselben Skalierung wie die CSS-Vorschau gezeichnet.
 - Andere Funktionen bleiben unverändert.
 ''', encoding='utf-8')
-      - name: Commit fix
+          PY
+
+      - name: Commit v10.38
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -97,5 +59,3 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "v10.38 fix desktop small-scale export offset"
           git push
-
-# trigger: 2026-09-04 v10.38
