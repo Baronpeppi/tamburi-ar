@@ -20,10 +20,8 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
-
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-
           replacements = [
               ('<title>Tamburi Standort AR v10.37</title>', '<title>Tamburi Standort AR v10.38</title>'),
               ('>v10.36</span></h1>', '>v10.38</span></h1>'),
@@ -32,25 +30,14 @@ jobs:
               ('      const cx=W/2 + desktopX*map;', '      const cx=W/2 + desktopX*mapX;'),
               ('      const cy=H/2 + desktopY*map;', '      const cy=H/2 + desktopY*mapY;'),
           ]
-
           for old, new in replacements:
               if old not in s:
                   raise SystemExit(f'Expected text not found: {old}')
               s = s.replace(old, new, 1)
-
           p.write_text(s, encoding='utf-8')
-
-          Path('README.txt').write_text('''Tamburi AR v10.38 – Desktop Small-Scale Export Fix
-
-Änderung:
-- Behebt den Versatz des Kastens beim Speichern, wenn er in der Desktop-Vorschau stark verkleinert wurde.
-- Vorschau und Export verwenden dieselbe 4:3-Koordinatenbasis.
-- X- und Y-Verschiebung werden getrennt mit der tatsächlichen Stage-Breite bzw. -Höhe auf 1024 × 768 übertragen.
-- Der model-viewer-Frame wird beim Export mit exakt derselben Skalierung wie die CSS-Vorschau gezeichnet.
-- Andere Funktionen bleiben unverändert.
-''', encoding='utf-8')
+          readme = "Tamburi AR v10.38 – Desktop Small-Scale Export Fix\n\nÄnderung:\n- Behebt den Versatz des Kastens beim Speichern, wenn er in der Desktop-Vorschau stark verkleinert wurde.\n- Vorschau und Export verwenden dieselbe 4:3-Koordinatenbasis.\n- X- und Y-Verschiebung werden getrennt mit der tatsächlichen Stage-Breite bzw. -Höhe auf 1024 × 768 übertragen.\n- Der model-viewer-Frame wird beim Export mit exakt derselben Skalierung wie die CSS-Vorschau gezeichnet.\n- Andere Funktionen bleiben unverändert.\n"
+          Path('README.txt').write_text(readme, encoding='utf-8')
           PY
-
       - name: Commit v10.38
         run: |
           git config user.name "github-actions[bot]"
