@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
-<title>Tamburi Standort AR v10.39</title>
+<title>Tamburi Standort AR v10.40</title>
 <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
@@ -490,7 +490,7 @@ body.noLockerMode #desktopScale{
 </head>
 <body>
 <header>
-  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.39</span></h1>
+  <h1>Tamburi Standort AR <span style="font-size:11px;color:#777">v10.40</span></h1>
   <div class="sub">Standort auswählen · visualisieren · dokumentieren</div>
 </header>
 <div class="panel" id="modePanel">
@@ -1020,12 +1020,12 @@ async function saveDesktopImage(){
     ctx.fillStyle='#111';
     ctx.fillRect(0,0,W,H);
 
-    // Hintergrund exakt wie in der 4:3-Desktopvorschau.
+    // v10.40: Hintergrund exakt wie sichtbar in der Desktop-Vorschau (object-fit: contain).
     const iw=importedPhoto.naturalWidth;
     const ih=importedPhoto.naturalHeight;
     if(!iw || !ih) throw new Error('Foto hat keine gültige Größe');
 
-    const bgFit=Math.max(W/iw,H/ih);
+    const bgFit=Math.min(W/iw,H/ih);
     const bgW=iw*bgFit;
     const bgH=ih*bgFit;
     ctx.drawImage(importedPhoto,(W-bgW)/2,(H-bgH)/2,bgW,bgH);
@@ -1092,7 +1092,7 @@ async function saveDesktopImage(){
         }
       }
 
-      // v10.39: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
+      // v10.40: Export exakt wie CSS-Vorschau skalieren – auch bei sehr kleinem Kasten.
       const stageRect=stage.getBoundingClientRect();
       const viewerRect=viewer.getBoundingClientRect();
       const drawW=viewerRect.width*mapX;
