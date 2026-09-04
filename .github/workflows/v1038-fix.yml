@@ -97,3 +97,5 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "v10.38 fix desktop small-scale export offset"
           git push
+
+# trigger: 2026-09-04 v10.38
